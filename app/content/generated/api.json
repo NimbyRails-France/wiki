@@ -1,0 +1,1538 @@
+{
+  "sdkVersion": "0.8.0-alpha.1",
+  "files": [
+    {
+      "file": "AutomaticDriving.kt",
+      "path": "kotlin/src/nimby/AutomaticDriving.kt",
+      "runtime": "Kotlin/Native",
+      "package": "nimby",
+      "sha256": "61f20406ff932256127c4917f2bef6a56ce693e15ce928fde363e121a05d3059",
+      "symbols": [
+        {
+          "name": "AutomaticDriving",
+          "owner": "",
+          "kind": "object",
+          "signature": "object AutomaticDriving",
+          "documentation": "Construit les consignes executees par le moteur natif, sans regle nationale.\nLe mod choisit les vitesses (m/s), la cible et chaque permission. Ces fonctions\nne lisent ni couleur ni occupation et ne publient rien par elles-memes : le\nresultat est renvoye par SignallingMod.drivingRule puis publie par son worker.\nZero represente un arret ; aucune vitesse de circulation n'est implicite.",
+          "line": 10
+        },
+        {
+          "name": "clear",
+          "owner": "AutomaticDriving",
+          "kind": "fun",
+          "signature": "fun clear() = DrivingRule(flags = setOf(DrivingFlag.Clear))",
+          "documentation": "Libere les consignes dont le mod a choisi une sortie sur Clear.",
+          "line": 17
+        },
+        {
+          "name": "stop",
+          "owner": "AutomaticDriving",
+          "kind": "fun",
+          "signature": "fun stop() = DrivingRule(speedMps = 0.0, flags = setOf(DrivingFlag.Stop))",
+          "documentation": "Exige l'arret au panneau courant, sans autorisation de franchissement.",
+          "line": 20
+        },
+        {
+          "name": "announceStop",
+          "owner": "AutomaticDriving",
+          "kind": "fun",
+          "signature": "fun announceStop(signalsAhead: Int, passageSpeedMps: Double,\n                     passableHere: Boolean, followTargetSpeed: Boolean = false,\n                     cancelAtNextClear: Boolean = false): DrivingRule",
+          "documentation": "Memorise, au franchissement, un objectif d'arret au panneau designe.\nUne permission explicite de ce panneau remplace l'arret par passageSpeedMps\njusqu'au passage de la tete. La contrainte ne disparait pas a la reouverture.\npassableHere concerne CE panneau, pas la cible annoncee. followTargetSpeed\nautorise la lecture d'une vitesse numerique visible de la cible. La\ncancellation au prochain Clear est une politique optionnelle du mod.",
+          "line": 30
+        },
+        {
+          "name": "limitAtSignal",
+          "owner": "AutomaticDriving",
+          "kind": "fun",
+          "signature": "fun limitAtSignal(speedMps: Double, passableHere: Boolean): DrivingRule",
+          "documentation": "Plafond ponctuel a ce panneau, sans restriction retenue apres passage.",
+          "line": 43
+        },
+        {
+          "name": "limitUntilClearThenRear",
+          "owner": "AutomaticDriving",
+          "kind": "fun",
+          "signature": "fun limitUntilClearThenRear(speedMps: Double, signalsAhead: Int, passableHere: Boolean): DrivingRule",
+          "documentation": "Plafond a la cible, retenu jusqu'au degagement par la queue d'un Clear\neffectivement franchi. Choisir cette fonction est une decision du mod.",
+          "line": 53
+        },
+        {
+          "name": "restrictedUntilNextSignal",
+          "owner": "AutomaticDriving",
+          "kind": "fun",
+          "signature": "fun restrictedUntilNextSignal(entrySpeedMps: Double, maximumSpeedMps: Double, stopFirst: Boolean): DrivingRule",
+          "documentation": "Apres passage, plafond conserve jusqu'au panneau suivant (passage tete),\navec freinage sur l'espace libre physiquement verifie. stopFirst impose\nune preuve d'arret avant entree ; les permissions natives restent actives.",
+          "line": 66
+        }
+      ]
+    },
+    {
+      "file": "Files.kt",
+      "path": "kotlin/src/nimby/Files.kt",
+      "runtime": "Kotlin/Native",
+      "package": "nimby",
+      "sha256": "6a658e34c87b27c2136f4ccf9c2c6616627a743ffa6f4a84a76a3bb6668a2e3d",
+      "symbols": [
+        {
+          "name": "readTextFile",
+          "owner": "",
+          "kind": "fun",
+          "signature": "fun readTextFile(path: String): String",
+          "documentation": "Lecture UTF-8 bornée pour les outils et tests Kotlin/Native.",
+          "line": 8
+        }
+      ]
+    },
+    {
+      "file": "Mod.kt",
+      "path": "kotlin/src/nimby/Mod.kt",
+      "runtime": "Kotlin/Native",
+      "package": "nimby",
+      "sha256": "7eb9c1a93cb59c6cf0f02479f6e40e26305d5ed3f2c6ce8622ac2f8705712b57",
+      "symbols": [
+        {
+          "name": "Checkbox",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class Checkbox(val name: String, val label: String, val description: String, val defaultValue: Boolean = false,\n    /** Pour un avertissement importé : visible tant qu'il reste à acquitter. */\n    val onlyWhenEnabled: Boolean = false)",
+          "documentation": "API de mod Kotlin. Les unités sont mètres, secondes, m/s, kg, N et W.",
+          "line": 4
+        },
+        {
+          "name": "SignalType",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class SignalType(\n    val id: String,\n    val title: String,\n    val textureSet: String,\n    val checkboxes: List<Checkbox> = emptyList(),\n    /** Demande l'observation du premier train orienté vers ce signal.\n     * Ne constitue pas une réservation ni une autorisation de mouvement. */\n    val observeApproach: Boolean = false\n)",
+          "documentation": "Un modèle constructible du mod. Les identifiants restent stables entre versions\npour retrouver les textures et les réglages des parties existantes.\nLes noms de cases sont locaux au type : deux types peuvent avoir une case\n« active » avec des valeurs par défaut différentes.",
+          "line": 12
+        },
+        {
+          "name": "Occupancy",
+          "owner": "",
+          "kind": "class",
+          "signature": "enum class Occupancy {\nUnknown, Clear, Occupied\n}",
+          "documentation": "",
+          "line": 21
+        },
+        {
+          "name": "SettingsStatus",
+          "owner": "",
+          "kind": "class",
+          "signature": "enum class SettingsStatus {\nUnavailable, Absent, Present\n}",
+          "documentation": "",
+          "line": 22
+        },
+        {
+          "name": "Observation",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class Observation(\n    val block: Occupancy = Occupancy.Unknown, val fresh: Boolean = false,\n    val routeKnown: Boolean = false, val forcedStop: Boolean = false,\n    val lampFailed: Boolean = false, val redFlashCondition: Boolean = false, val next: Int = 0,\n    val approachingTrain: Long? = null\n)",
+          "documentation": "",
+          "line": 23
+        },
+        {
+          "name": "Decision",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class Decision(val aspect: Int, val reason: Int)",
+          "documentation": "",
+          "line": 29
+        },
+        {
+          "name": "Signal",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class Signal(\n    val id: Long = 0, val nextSignal: Long = 0, val settings: Map<String, Boolean> = emptyMap(),\n    val observation: Observation = Observation(), val settingsStatus: SettingsStatus = SettingsStatus.Present,\n    /** Identifiant de SignalType, fourni par le SDK à partir du catalogue observé. */\n    val type: String = \"\"\n)",
+          "documentation": "",
+          "line": 30
+        },
+        {
+          "name": "Vehicle",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class Vehicle(\n    val maxSpeedMps: Double = 0.0, val maxAccelerationMps2: Double = 0.0,\n    val serviceBrakingMps2: Double = 0.0, val tractiveEffortN: Double = 0.0,\n    val powerW: Double = 0.0, val emptyMassKg: Double = 0.0,\n    val extraMassKg: Double = 0.0, val lengthM: Double = 0.0\n)",
+          "documentation": "",
+          "line": 36
+        },
+        {
+          "name": "DrivingSettings",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class DrivingSettings(val brakeUse: Double = 0.8, val responseSeconds: Double = 2.0, val marginM: Double = 10.0)",
+          "documentation": "",
+          "line": 42
+        },
+        {
+          "name": "Constraint",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class Constraint(val source: Long, val beginM: Double, val endM: Double, val speedMps: Double, val releaseByRear: Boolean = true)",
+          "documentation": "",
+          "line": 43
+        },
+        {
+          "name": "DrivingInput",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class DrivingInput(\n    val headM: Double = 0.0, val speedMps: Double = 0.0, val lineSpeedMps: Double = 0.0,\n    val fresh: Boolean = false, val routeKnown: Boolean = false,\n    val onSight: Boolean = false, val visibleClearM: Double? = null\n)",
+          "documentation": "",
+          "line": 44
+        },
+        {
+          "name": "DrivingPlan",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class DrivingPlan(\n    val available: Boolean = false, val speedCeilingMps: Double = 0.0,\n    val serviceDecelerationMps2: Double = 0.0, val accelerationMps2: Double = 0.0,\n    val brakingRequired: Boolean = false, val limitingSource: Long = 0\n)",
+          "documentation": "",
+          "line": 49
+        },
+        {
+          "name": "DrivingFlag",
+          "owner": "",
+          "kind": "class",
+          "signature": "enum class DrivingFlag(val bit: Int) {\nClear(1), HoldToClear(2), Stop(4), FollowTarget(8), OnSight(16), StopThenProceed(32), CancelAtNextClear(64),\n    /** Passage permis selon la vitesse memorisee\n}",
+          "documentation": "",
+          "line": 54
+        },
+        {
+          "name": "DrivingRule",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class DrivingRule(\n    val speedMps: Double = -1.0, val reopenedSpeedMps: Double = 0.0,\n    val signalsAhead: Int = 0, val flags: Set<DrivingFlag> = emptySet()\n)",
+          "documentation": "",
+          "line": 59
+        },
+        {
+          "name": "SignallingMod",
+          "owner": "",
+          "kind": "class",
+          "signature": "abstract class SignallingMod",
+          "documentation": "Une seule implémentation Kotlin suffit. Le SDK fournit DLL, exports et boucle de lecture.",
+          "line": 65
+        },
+        {
+          "name": "id",
+          "owner": "SignallingMod",
+          "kind": "val",
+          "signature": "abstract val id: String",
+          "documentation": "",
+          "line": 66
+        },
+        {
+          "name": "title",
+          "owner": "SignallingMod",
+          "kind": "val",
+          "signature": "abstract val title: String",
+          "documentation": "",
+          "line": 67
+        },
+        {
+          "name": "textureSet",
+          "owner": "SignallingMod",
+          "kind": "val",
+          "signature": "open val textureSet: String = \"\"",
+          "documentation": "",
+          "line": 69
+        },
+        {
+          "name": "checkboxes",
+          "owner": "SignallingMod",
+          "kind": "val",
+          "signature": "open val checkboxes: List<Checkbox> = emptyList()",
+          "documentation": "",
+          "line": 70
+        },
+        {
+          "name": "signalTypes",
+          "owner": "SignallingMod",
+          "kind": "val",
+          "signature": "open val signalTypes: List<SignalType> get() = listOf(SignalType(id, title, textureSet, checkboxes))",
+          "documentation": "",
+          "line": 71
+        },
+        {
+          "name": "migrateSettings",
+          "owner": "SignallingMod",
+          "kind": "fun",
+          "signature": "open fun migrateSettings(type: String, saved: Map<String, Boolean>): Map<String, Boolean> = saved",
+          "documentation": "Convertit les anciennes cases lors du chargement d'un profil sauvegardé.\nNe reçoit que les valeurs enregistrées, sans inventer de valeurs absentes.\nRetourner les nouvelles clés ; le SDK complète leurs valeurs par défaut.",
+          "line": 75
+        },
+        {
+          "name": "maximumLineSpeed",
+          "owner": "SignallingMod",
+          "kind": "val",
+          "signature": "open val maximumLineSpeed = false",
+          "documentation": "",
+          "line": 76
+        },
+        {
+          "name": "diagnosticFile",
+          "owner": "SignallingMod",
+          "kind": "val",
+          "signature": "open val diagnosticFile: String = \"nimby-kotlin-faults.jsonl\"",
+          "documentation": "",
+          "line": 77
+        },
+        {
+          "name": "unknownDecision",
+          "owner": "SignallingMod",
+          "kind": "val",
+          "signature": "abstract val unknownDecision: Decision",
+          "documentation": "",
+          "line": 78
+        },
+        {
+          "name": "invalidNetworkDecision",
+          "owner": "SignallingMod",
+          "kind": "val",
+          "signature": "abstract val invalidNetworkDecision: Decision",
+          "documentation": "",
+          "line": 79
+        },
+        {
+          "name": "evaluate",
+          "owner": "SignallingMod",
+          "kind": "fun",
+          "signature": "abstract fun evaluate(settings: Map<String, Boolean>, observation: Observation): Decision",
+          "documentation": "",
+          "line": 80
+        },
+        {
+          "name": "evaluate",
+          "owner": "SignallingMod",
+          "kind": "fun",
+          "signature": "open fun evaluate(type: String, settings: Map<String, Boolean>, observation: Observation): Decision =",
+          "documentation": "Calcul isolé d'un type. Le réseau utilise decide et Signal.type.\nLes codes d'indication/motif appartiennent au mod entier : les règles\npeuvent donc interpréter le voisin même s'il est d'un autre type.",
+          "line": 84
+        },
+        {
+          "name": "decide",
+          "owner": "SignallingMod",
+          "kind": "fun",
+          "signature": "abstract fun decide(signal: Signal, next: Decision?): Decision?",
+          "documentation": "",
+          "line": 86
+        },
+        {
+          "name": "fromLive",
+          "owner": "SignallingMod",
+          "kind": "fun",
+          "signature": "open fun fromLive(signal: Signal): Signal = signal",
+          "documentation": "",
+          "line": 87
+        },
+        {
+          "name": "texture",
+          "owner": "SignallingMod",
+          "kind": "fun",
+          "signature": "abstract fun texture(decision: Decision, simulationMs: Long, halfPeriodMs: Long): String",
+          "documentation": "",
+          "line": 88
+        },
+        {
+          "name": "forcedDecision",
+          "owner": "SignallingMod",
+          "kind": "fun",
+          "signature": "open fun forcedDecision(aspect: Int): Decision? = null",
+          "documentation": "Indication de recette autorisee par le mod. Null refuse le code.\nLe motif determine aussi la conduite : arret absolu ou permissif.\nAucun aspect, motif ni vitesse ne sont interpretes par le SDK.",
+          "line": 92
+        },
+        {
+          "name": "forcedDecision",
+          "owner": "SignallingMod",
+          "kind": "fun",
+          "signature": "open fun forcedDecision(type: String, aspect: Int): Decision? = forcedDecision(aspect)",
+          "documentation": "",
+          "line": 93
+        },
+        {
+          "name": "drivingRule",
+          "owner": "SignallingMod",
+          "kind": "fun",
+          "signature": "abstract fun drivingRule(decision: Decision): DrivingRule?",
+          "documentation": "",
+          "line": 94
+        },
+        {
+          "name": "isFault",
+          "owner": "SignallingMod",
+          "kind": "fun",
+          "signature": "abstract fun isFault(decision: Decision): Boolean",
+          "documentation": "",
+          "line": 95
+        },
+        {
+          "name": "isActive",
+          "owner": "SignallingMod",
+          "kind": "fun",
+          "signature": "open fun isActive(decision: Decision): Boolean = true",
+          "documentation": "",
+          "line": 96
+        },
+        {
+          "name": "aspectName",
+          "owner": "SignallingMod",
+          "kind": "fun",
+          "signature": "open fun aspectName(aspect: Int): String = aspect.toString()",
+          "documentation": "",
+          "line": 97
+        },
+        {
+          "name": "reasonName",
+          "owner": "SignallingMod",
+          "kind": "fun",
+          "signature": "abstract fun reasonName(reason: Int): String",
+          "documentation": "",
+          "line": 98
+        },
+        {
+          "name": "plan",
+          "owner": "SignallingMod",
+          "kind": "fun",
+          "signature": "open fun plan(vehicle: Vehicle, settings: DrivingSettings, input: DrivingInput, constraints: List<Constraint>) = DrivingPlan()",
+          "documentation": "",
+          "line": 99
+        },
+        {
+          "name": "evaluateNetwork",
+          "owner": "",
+          "kind": "fun",
+          "signature": "fun SignallingMod.evaluateNetwork(input: List<Signal>): List<Decision>",
+          "documentation": "Résolution des liens, commune aux mods et aux tests, sans récursion profonde.",
+          "line": 103
+        }
+      ]
+    },
+    {
+      "file": "SignalMod.kt",
+      "path": "kotlin/src/nimby/SignalMod.kt",
+      "runtime": "Kotlin/Native",
+      "package": "nimby",
+      "sha256": "240b3aeefed18d927a969e11c93506658600ed0947b2fd6e2bb13891820da47b",
+      "symbols": [
+        {
+          "name": "Indication",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class Indication<A : Enum<A>, R : Enum<R>>(val aspect: A, val reason: R)",
+          "documentation": "Une indication du mod : deux enums Kotlin, sans code natif à manipuler.\nL'ordre des enums fait partie du protocole de diagnostic du mod : ajouter les\nnouvelles valeurs à la fin si des recettes utilisent déjà leurs codes.",
+          "line": 6
+        },
+        {
+          "name": "SignalModDsl",
+          "owner": "",
+          "kind": "class",
+          "signature": "annotation class SignalModDsl",
+          "documentation": "",
+          "line": 9
+        },
+        {
+          "name": "SignalContext",
+          "owner": "",
+          "kind": "class",
+          "signature": "class SignalContext<A : Enum<A>, R : Enum<R>> internal constructor(\n    val signal: Signal,\n    val next: Indication<A, R>?,\n    private val options: List<Checkbox>\n)",
+          "documentation": "Contexte d'une règle. [next] est null lors du premier calcul ; retourner null\ndemande au SDK de résoudre le signal suivant puis de rappeler la règle.\nSi le suivant est absent ou si le réseau boucle, le SDK utilise le repli\n`invalidNetwork` choisi par le mod. Aucune règle nationale n'est implicite.",
+          "line": 15
+        },
+        {
+          "name": "observation",
+          "owner": "SignalContext",
+          "kind": "val",
+          "signature": "val observation: Observation get() = signal.observation",
+          "documentation": "",
+          "line": 20
+        },
+        {
+          "name": "block",
+          "owner": "SignalContext",
+          "kind": "val",
+          "signature": "val block: Occupancy get() = observation.block",
+          "documentation": "",
+          "line": 21
+        },
+        {
+          "name": "fresh",
+          "owner": "SignalContext",
+          "kind": "val",
+          "signature": "val fresh: Boolean get() = observation.fresh",
+          "documentation": "",
+          "line": 22
+        },
+        {
+          "name": "routeKnown",
+          "owner": "SignalContext",
+          "kind": "val",
+          "signature": "val routeKnown: Boolean get() = observation.routeKnown",
+          "documentation": "",
+          "line": 23
+        },
+        {
+          "name": "approachingTrain",
+          "owner": "SignalContext",
+          "kind": "val",
+          "signature": "val approachingTrain: Long? get() = observation.approachingTrain",
+          "documentation": "",
+          "line": 24
+        },
+        {
+          "name": "settingsStatus",
+          "owner": "SignalContext",
+          "kind": "val",
+          "signature": "val settingsStatus: SettingsStatus get() = signal.settingsStatus",
+          "documentation": "",
+          "line": 25
+        },
+        {
+          "name": "enabled",
+          "owner": "SignalContext",
+          "kind": "fun",
+          "signature": "fun enabled(option: Checkbox): Boolean",
+          "documentation": "Une valeur absente prend le défaut déclaré. Un profil indisponible reste\nidentifiable par [settingsStatus] : ce défaut ne prouve pas sa validité.",
+          "line": 29
+        },
+        {
+          "name": "SignalDefinition",
+          "owner": "",
+          "kind": "class",
+          "signature": "class SignalDefinition<A : Enum<A>, R : Enum<R>> internal constructor(private val base: SignalType)",
+          "documentation": "Configuration d'un modèle constructible. Les callbacks n'effectuent aucun\nappel natif : ils se testent avec de simples valeurs Kotlin.",
+          "line": 38
+        },
+        {
+          "name": "observeApproach",
+          "owner": "SignalDefinition",
+          "kind": "var",
+          "signature": "var observeApproach: Boolean = base.observeApproach",
+          "documentation": "",
+          "line": 40
+        },
+        {
+          "name": "checkbox",
+          "owner": "SignalDefinition",
+          "kind": "fun",
+          "signature": "fun checkbox(name: String, label: String, description: String = \"\", defaultValue: Boolean = false,\n                 onlyWhenEnabled: Boolean = false): Checkbox =",
+          "documentation": "",
+          "line": 47
+        },
+        {
+          "name": "rules",
+          "owner": "SignalDefinition",
+          "kind": "fun",
+          "signature": "fun rules(block: SignalContext<A, R>.() -> Indication<A, R>?)",
+          "documentation": "",
+          "line": 51
+        },
+        {
+          "name": "evaluate",
+          "owner": "SignalDefinition",
+          "kind": "fun",
+          "signature": "fun evaluate(block: (Map<String, Boolean>, Observation) -> Indication<A, R>)",
+          "documentation": "Facultatif : calcul isolé sans résolution du réseau, pour les diagnostics.",
+          "line": 53
+        },
+        {
+          "name": "migrateSettings",
+          "owner": "SignalDefinition",
+          "kind": "fun",
+          "signature": "fun migrateSettings(block: (Map<String, Boolean>) -> Map<String, Boolean>)",
+          "documentation": "",
+          "line": 54
+        },
+        {
+          "name": "prepareObservation",
+          "owner": "SignalDefinition",
+          "kind": "fun",
+          "signature": "fun prepareObservation(block: (Signal) -> Signal)",
+          "documentation": "",
+          "line": 55
+        },
+        {
+          "name": "allowForcedAspect",
+          "owner": "SignalDefinition",
+          "kind": "fun",
+          "signature": "fun allowForcedAspect(block: (A) -> Indication<A, R>?)",
+          "documentation": "Sans ce callback, toute demande de forçage d'indication est refusée.",
+          "line": 57
+        },
+        {
+          "name": "SignalModBuilder",
+          "owner": "",
+          "kind": "class",
+          "signature": "class SignalModBuilder<A : Enum<A>, R : Enum<R>> internal constructor()",
+          "documentation": "Déclaration du mod. Les replis, images, vitesses et permissions viennent\nexclusivement du mod. Le SDK prend en charge les exports et le réseau.",
+          "line": 76
+        },
+        {
+          "name": "maximumLineSpeed",
+          "owner": "SignalModBuilder",
+          "kind": "var",
+          "signature": "var maximumLineSpeed: Boolean = false",
+          "documentation": "",
+          "line": 77
+        },
+        {
+          "name": "diagnosticFile",
+          "owner": "SignalModBuilder",
+          "kind": "var",
+          "signature": "var diagnosticFile: String = \"nimby-kotlin-faults.jsonl\"",
+          "documentation": "",
+          "line": 78
+        },
+        {
+          "name": "signal",
+          "owner": "SignalModBuilder",
+          "kind": "fun",
+          "signature": "fun signal(id: String, title: String, textures: String, block: SignalDefinition<A, R>.() -> Unit) =",
+          "documentation": "",
+          "line": 88
+        },
+        {
+          "name": "signal",
+          "owner": "SignalModBuilder",
+          "kind": "fun",
+          "signature": "fun signal(type: SignalType, block: SignalDefinition<A, R>.() -> Unit)",
+          "documentation": "Permet de conserver une déclaration partagée avec des tests ou un éditeur.",
+          "line": 92
+        },
+        {
+          "name": "images",
+          "owner": "SignalModBuilder",
+          "kind": "fun",
+          "signature": "fun images(block: (Indication<A, R>) -> String)",
+          "documentation": "",
+          "line": 95
+        },
+        {
+          "name": "animatedImages",
+          "owner": "SignalModBuilder",
+          "kind": "fun",
+          "signature": "fun animatedImages(block: (Indication<A, R>, Long, Long) -> String)",
+          "documentation": "Temps simulé et demi-période en millisecondes, jamais l'heure du PC.",
+          "line": 97
+        },
+        {
+          "name": "driving",
+          "owner": "SignalModBuilder",
+          "kind": "fun",
+          "signature": "fun driving(block: (Indication<A, R>) -> DrivingRule?)",
+          "documentation": "",
+          "line": 98
+        },
+        {
+          "name": "faults",
+          "owner": "SignalModBuilder",
+          "kind": "fun",
+          "signature": "fun faults(block: (Indication<A, R>) -> Boolean)",
+          "documentation": "",
+          "line": 99
+        },
+        {
+          "name": "activeWhen",
+          "owner": "SignalModBuilder",
+          "kind": "fun",
+          "signature": "fun activeWhen(block: (Indication<A, R>) -> Boolean)",
+          "documentation": "",
+          "line": 100
+        },
+        {
+          "name": "aspectNames",
+          "owner": "SignalModBuilder",
+          "kind": "fun",
+          "signature": "fun aspectNames(block: (A) -> String)",
+          "documentation": "",
+          "line": 101
+        },
+        {
+          "name": "reasonNames",
+          "owner": "SignalModBuilder",
+          "kind": "fun",
+          "signature": "fun reasonNames(block: (R) -> String)",
+          "documentation": "",
+          "line": 102
+        },
+        {
+          "name": "drivingPlan",
+          "owner": "SignalModBuilder",
+          "kind": "fun",
+          "signature": "fun drivingPlan(block: (Vehicle, DrivingSettings, DrivingInput, List<Constraint>) -> DrivingPlan)",
+          "documentation": "",
+          "line": 103
+        },
+        {
+          "name": "signalMod",
+          "owner": "",
+          "kind": "fun",
+          "signature": "inline fun <reified A : Enum<A>, reified R : Enum<R>> signalMod(\n    id: String, title: String, fallback: Indication<A, R>,\n    invalidNetwork: Indication<A, R> = fallback,\n    noinline block: SignalModBuilder<A, R>.() -> Unit\n): SignallingMod = buildSignalMod(id, title, fallback, invalidNetwork, enumValues<A>().toList(), enumValues<R>().toList(), block)",
+          "documentation": "Crée un mod avec des enums typées. [fallback] couvre les observations inconnues ;\n[invalidNetwork] couvre les liens absents et les cycles sans décision locale.",
+          "line": 108
+        }
+      ]
+    },
+    {
+      "file": "SignalTypes.kt",
+      "path": "kotlin/src/nimby/SignalTypes.kt",
+      "runtime": "Kotlin/Native",
+      "package": "nimby",
+      "sha256": "843f3c62bf18ac61ecb1307a3e4e05d210f8677c4021980a93e64796ff710a69",
+      "symbols": [
+        {
+          "name": "validateSignalTypes",
+          "owner": "",
+          "kind": "fun",
+          "signature": "fun validateSignalTypes(types: List<SignalType>)",
+          "documentation": "Contrat commun au chargement natif et aux tests hors jeu. Les catalogues\ndoivent être distincts : le SDK ne devine jamais les règles d'un signal.",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "file": "Construction.kt",
+      "path": "kotlin-client/src/main/kotlin/fr/nimby/sdk/Construction.kt",
+      "runtime": "Kotlin/JVM",
+      "package": "fr.nimby.sdk",
+      "sha256": "5d4f99379fa544852197610f8d4c4a6c60241ebf73dc16aa26c0e5cf0e155987",
+      "symbols": [
+        {
+          "name": "ConstructionResult",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class ConstructionResult(\n    val state: ConstructionState, val token: Long, val createdIds: List<Long>,\n    val reason: Int, val canUndo: Boolean,\n)",
+          "documentation": "Development-only native construction. Requires the separately built experimental bridge.\nTickets belong to one running game/editor and expire on intervening native commands.\nNever retry creation after an uncertain response: poll its token instead.",
+          "line": 10
+        },
+        {
+          "name": "ConstructionState",
+          "owner": "",
+          "kind": "class",
+          "signature": "enum class ConstructionState {\nREADY, APPLIED, UNDONE, REJECTED, PARTIAL, PENDING\n}",
+          "documentation": "",
+          "line": 14
+        }
+      ]
+    },
+    {
+      "file": "DiagnosticLog.kt",
+      "path": "kotlin-client/src/main/kotlin/fr/nimby/sdk/DiagnosticLog.kt",
+      "runtime": "Kotlin/JVM",
+      "package": "fr.nimby.sdk",
+      "sha256": "c1961da6e2584dd2096de8cda02161743a66cb698569da8c14b1b2002c7f9af1",
+      "symbols": [
+        {
+          "name": "DiagnosticLog",
+          "owner": "",
+          "kind": "class",
+          "signature": "class DiagnosticLog(val component: String, root: Path = defaultRoot(),\n                    private val maximumBytes: Long = 2 * 1024 * 1024)",
+          "documentation": "Production diagnostics, separate from observations and game saves. Never\nrecord a successful polling tick. Repeated failures are coalesced, with a\ncount on recovery/change or after 30 seconds. Each write closes the file.",
+          "line": 11
+        },
+        {
+          "name": "defaultRoot",
+          "owner": "DiagnosticLog.Companion",
+          "kind": "fun",
+          "signature": "fun defaultRoot(): Path = System.getenv(\"NRF_LOG_DIR\")?.takeIf { it.isNotBlank() }?.let(Path::of)",
+          "documentation": "",
+          "line": 14
+        },
+        {
+          "name": "forComponent",
+          "owner": "DiagnosticLog.Companion",
+          "kind": "fun",
+          "signature": "@Synchronized fun forComponent(name: String): DiagnosticLog = instances.getOrPut(name) { DiagnosticLog(name) }",
+          "documentation": "",
+          "line": 17
+        },
+        {
+          "name": "directory",
+          "owner": "DiagnosticLog",
+          "kind": "val",
+          "signature": "val directory: Path = root.resolve(component)",
+          "documentation": "",
+          "line": 20
+        },
+        {
+          "name": "file",
+          "owner": "DiagnosticLog",
+          "kind": "val",
+          "signature": "val file: Path = directory.resolve(\"$component-${ProcessHandle.current().pid()}.log\")",
+          "documentation": "",
+          "line": 21
+        },
+        {
+          "name": "write",
+          "owner": "DiagnosticLog",
+          "kind": "fun",
+          "signature": "@Synchronized fun write(message: String, failure: Throwable? = null, level: String = if (failure == null) \"INFO\" else \"ERROR\")",
+          "documentation": "",
+          "line": 27
+        },
+        {
+          "name": "startApplication",
+          "owner": "DiagnosticLog",
+          "kind": "fun",
+          "signature": "fun startApplication(version: String)",
+          "documentation": "Install once at the application entry point, never inside a library\nloaded into someone else's process. Fatal native crashes remain outside\nJVM exception handling; a log is not a native crash dump.",
+          "line": 59
+        }
+      ]
+    },
+    {
+      "file": "DrivingObservation.kt",
+      "path": "kotlin-client/src/main/kotlin/fr/nimby/sdk/DrivingObservation.kt",
+      "runtime": "Kotlin/JVM",
+      "package": "fr.nimby.sdk",
+      "sha256": "df4feb4e3a2993aa05e8c67ce7d3232f4ef49fa77e1ca1e6cbf39164a77b88f1",
+      "symbols": [
+        {
+          "name": "TrainDynamics",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class TrainDynamics(\n    val maxSpeedMps: Double, val maxAccelerationMps2: Double,\n    val serviceBrakingMps2: Double, val emergencyBrakingMps2: Double,\n    val tractiveEffortN: Double, val powerW: Double, val emptyMassKg: Double, val lengthM: Double,\n)",
+          "documentation": "Material parameters reported by the game, in SI units; not measured performance.",
+          "line": 4
+        },
+        {
+          "name": "DrivingObservation",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class DrivingObservation(\n    val trainId: Long, val sessionGeneration: Long, val capturedAtMillis: Long,\n    val elapsedBeginMillis: Long, val elapsedEndMillis: Long,\n    val purchasedDynamics: TrainDynamics?, val currentDynamics: TrainDynamics?,\n    val position: Position?, val speedMps: Double?, val speedDefaulted: Boolean,\n    val motionAvailable: Boolean,\n)",
+          "documentation": "Owned result of one targeted read. Null properties mean unavailable data.\nPurchased and current dynamics are independent: neither substitutes for the other.\nsessionGeneration belongs to this connection, not to a globally unique save.\nReset any derived state on reconnect as well as on generation changes.\nelapsedBeginMillis/elapsedEndMillis bound the read in simulation time;\ncapturedAtMillis is the system timestamp. This is not an atomic game tick.",
+          "line": 18
+        }
+      ]
+    },
+    {
+      "file": "ModControl.kt",
+      "path": "kotlin-client/src/main/kotlin/fr/nimby/sdk/ModControl.kt",
+      "runtime": "Kotlin/JVM",
+      "package": "fr.nimby.sdk",
+      "sha256": "bfbf934bc054e354c83677ce6a161562ead1923c639e4619363f5d02382b3ce9",
+      "symbols": [
+        {
+          "name": "ControlOperation",
+          "owner": "",
+          "kind": "class",
+          "signature": "enum class ControlOperation(val code: Int) {\nStatus(0), Acquire(1), Renew(2), Release(3), ForceSignal(4), RestoreSignal(5),\n    Train(6), RestoreTrain(7), Setting(8), RestoreSetting(9), Clear(10), ReadSignal(11), ReadTrain(12)\n}",
+          "documentation": "Protocol values only; aspect codes and setting indices belong to the mod.",
+          "line": 4
+        },
+        {
+          "name": "TrainControlMode",
+          "owner": "",
+          "kind": "class",
+          "signature": "enum class TrainControlMode(val code: Int) {\nSpeedLimit(0), PhysicalClearance(1), Stop(2)\n}",
+          "documentation": "",
+          "line": 8
+        },
+        {
+          "name": "TrainControlState",
+          "owner": "",
+          "kind": "class",
+          "signature": "enum class TrainControlState {\nAbsent, AwaitingExit, Active, Completed, Cancelled\n}",
+          "documentation": "",
+          "line": 9
+        },
+        {
+          "name": "ControlRequest",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class ControlRequest(\n    val operation: ControlOperation, val owner: Long = 0, val generation: Long = 0,\n    val leaseMillis: Int = 0, val objectId: Long = 0, val exitSignal: Long = 0,\n    val speedMps: Double = 0.0, val mode: TrainControlMode = TrainControlMode.SpeedLimit,\n    val releaseByRear: Boolean = false, val value: Int = 0, val settingIndex: Int = 0\n)",
+          "documentation": "",
+          "line": 10
+        },
+        {
+          "name": "ControlResponse",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class ControlResponse(\n    val capabilities: Int, val generation: Long, val remainingMillis: Long,\n    val signalCount: Int, val trainCount: Int, val settingCount: Int,\n    val active: Int, val aspect: Int, val reason: Int,\n    val speedMps: Double, val exitSignal: Long, val detail: String\n)",
+          "documentation": "Counts describe requested overlays. ReadSignal reads the last evaluated\ndecision; ReadTrain.active is [TrainControlState.ordinal], not a permission.",
+          "line": 18
+        },
+        {
+          "name": "ModControlSession",
+          "owner": "",
+          "kind": "class",
+          "signature": "class ModControlSession internal constructor(\n    private val client: NimbyClient, val modId: String, val owner: Long, val generation: Long\n) : AutoCloseable",
+          "documentation": "Explicit recipe lease. No background renewals and no automatic retries.\nExpiration relinquishes temporary overrides. After a transport failure,\ninspect status and observations before deciding on another mutation.",
+          "line": 28
+        },
+        {
+          "name": "renew",
+          "owner": "ModControlSession",
+          "kind": "fun",
+          "signature": "@Synchronized fun renew(leaseMillis: Int = 5000) = send(ControlOperation.Renew) { it.copy(leaseMillis = leaseMillis) }",
+          "documentation": "",
+          "line": 36
+        },
+        {
+          "name": "forceSignal",
+          "owner": "ModControlSession",
+          "kind": "fun",
+          "signature": "@Synchronized fun forceSignal(signal: Long, aspect: Int) = send(ControlOperation.ForceSignal) { it.copy(objectId = signal, value = aspect) }",
+          "documentation": "",
+          "line": 37
+        },
+        {
+          "name": "restoreSignal",
+          "owner": "ModControlSession",
+          "kind": "fun",
+          "signature": "@Synchronized fun restoreSignal(signal: Long) = send(ControlOperation.RestoreSignal) { it.copy(objectId = signal) }",
+          "documentation": "",
+          "line": 38
+        },
+        {
+          "name": "setSetting",
+          "owner": "ModControlSession",
+          "kind": "fun",
+          "signature": "@Synchronized fun setSetting(signal: Long, index: Int, value: Boolean) = send(ControlOperation.Setting) {",
+          "documentation": "",
+          "line": 39
+        },
+        {
+          "name": "restoreSetting",
+          "owner": "ModControlSession",
+          "kind": "fun",
+          "signature": "@Synchronized fun restoreSetting(signal: Long, index: Int) = send(ControlOperation.RestoreSetting) { it.copy(objectId = signal, settingIndex = index) }",
+          "documentation": "",
+          "line": 42
+        },
+        {
+          "name": "constrainTrain",
+          "owner": "ModControlSession",
+          "kind": "fun",
+          "signature": "        exitSignal: Long = 0, releaseByRear: Boolean = false) = send(ControlOperation.Train) {",
+          "documentation": "",
+          "line": 43
+        },
+        {
+          "name": "restoreTrain",
+          "owner": "ModControlSession",
+          "kind": "fun",
+          "signature": "@Synchronized fun restoreTrain(train: Long) = send(ControlOperation.RestoreTrain) { it.copy(objectId = train) }",
+          "documentation": "",
+          "line": 47
+        },
+        {
+          "name": "readSignal",
+          "owner": "ModControlSession",
+          "kind": "fun",
+          "signature": "@Synchronized fun readSignal(signal: Long) = send(ControlOperation.ReadSignal) { it.copy(objectId = signal) }",
+          "documentation": "",
+          "line": 48
+        },
+        {
+          "name": "readTrain",
+          "owner": "ModControlSession",
+          "kind": "fun",
+          "signature": "@Synchronized fun readTrain(train: Long) = send(ControlOperation.ReadTrain) { it.copy(objectId = train) }",
+          "documentation": "",
+          "line": 49
+        },
+        {
+          "name": "clear",
+          "owner": "ModControlSession",
+          "kind": "fun",
+          "signature": "@Synchronized fun clear() = send(ControlOperation.Clear)",
+          "documentation": "",
+          "line": 50
+        },
+        {
+          "name": "close",
+          "owner": "ModControlSession",
+          "kind": "fun",
+          "signature": "@Synchronized override fun close()",
+          "documentation": "",
+          "line": 51
+        }
+      ]
+    },
+    {
+      "file": "Nimby.kt",
+      "path": "kotlin-client/src/main/kotlin/fr/nimby/sdk/Nimby.kt",
+      "runtime": "Kotlin/JVM",
+      "package": "fr.nimby.sdk",
+      "sha256": "cf7765a486de23f14f3394a7047ed476c9b7f018c5abd6ed1a3f8a965473d15e",
+      "symbols": [
+        {
+          "name": "Nimby",
+          "owner": "",
+          "kind": "object",
+          "signature": "object Nimby",
+          "documentation": "Point d'entrée d'une application Kotlin. Un mod chargé par le loader utilise\nle module nimby et n'a pas besoin d'ouvrir cette connexion externe.",
+          "line": 8
+        },
+        {
+          "name": "runningGames",
+          "owner": "Nimby",
+          "kind": "fun",
+          "signature": "fun runningGames(): List<GameProcess> = GameProcesses.discover()",
+          "documentation": "Liste les jeux accessibles sans choisir silencieusement un processus.",
+          "line": 10
+        },
+        {
+          "name": "connect",
+          "owner": "Nimby",
+          "kind": "fun",
+          "signature": "fun connect(sdk: Path, processId: Int? = null): Game",
+          "documentation": "Ouvre le SDK indiqué. Sans PID, exige exactement un jeu accessible.\nLa connexion se ferme avec use { game -> … }. Aucun essai de mutation\nni injection n'est déclenché par cette ouverture.",
+          "line": 15
+        },
+        {
+          "name": "Game",
+          "owner": "",
+          "kind": "class",
+          "signature": "class Game internal constructor(val advanced: NimbyClient) : AutoCloseable",
+          "documentation": "Une connexion organisée par usage. Les observations sont des copies Kotlin.\n[advanced] conserve l'accès à toutes les opérations détaillées du transport,\nsur la même session et avec le même verrou. Ne pas le fermer séparément.",
+          "line": 27
+        },
+        {
+          "name": "trains",
+          "owner": "Game",
+          "kind": "val",
+          "signature": "val trains: Trains = Trains(advanced)",
+          "documentation": "",
+          "line": 28
+        },
+        {
+          "name": "clock",
+          "owner": "Game",
+          "kind": "val",
+          "signature": "val clock: Clock = Clock(advanced)",
+          "documentation": "",
+          "line": 29
+        },
+        {
+          "name": "signals",
+          "owner": "Game",
+          "kind": "val",
+          "signature": "val signals: Signals = Signals(advanced)",
+          "documentation": "",
+          "line": 30
+        },
+        {
+          "name": "mods",
+          "owner": "Game",
+          "kind": "val",
+          "signature": "val mods: Mods = Mods(advanced)",
+          "documentation": "",
+          "line": 31
+        },
+        {
+          "name": "construction",
+          "owner": "Game",
+          "kind": "val",
+          "signature": "val construction: Construction = Construction(advanced)",
+          "documentation": "",
+          "line": 32
+        },
+        {
+          "name": "snapshot",
+          "owner": "Game",
+          "kind": "fun",
+          "signature": "fun snapshot(selectedTrain: Long? = null): Observation = advanced.capture(selectedTrain)",
+          "documentation": "Capture complète ; demander seulement le train voulu avec trains.read\nquand les autres tables ne sont pas nécessaires.",
+          "line": 36
+        },
+        {
+          "name": "close",
+          "owner": "Game",
+          "kind": "fun",
+          "signature": "override fun close(): Unit = advanced.close()",
+          "documentation": "",
+          "line": 37
+        },
+        {
+          "name": "Trains",
+          "owner": "Game",
+          "kind": "class",
+          "signature": "class Trains internal constructor(private val client: NimbyClient)",
+          "documentation": "",
+          "line": 39
+        },
+        {
+          "name": "read",
+          "owner": "Game.Trains",
+          "kind": "fun",
+          "signature": "fun read(id: Long): DrivingObservation? = client.readTrain(id)",
+          "documentation": "Null signifie absent ou instable, jamais arrêté par défaut.",
+          "line": 41
+        },
+        {
+          "name": "Clock",
+          "owner": "Game",
+          "kind": "class",
+          "signature": "class Clock internal constructor(private val client: NimbyClient)",
+          "documentation": "",
+          "line": 44
+        },
+        {
+          "name": "read",
+          "owner": "Game.Clock",
+          "kind": "fun",
+          "signature": "fun read(): SimulationClock? = client.capture().clock",
+          "documentation": "Lit via une capture complète. Réutiliser snapshot.clock lorsqu'une\ncapture a déjà été réalisée, pour ne pas doubler le coût de lecture.",
+          "line": 47
+        },
+        {
+          "name": "set",
+          "owner": "Game.Clock",
+          "kind": "fun",
+          "signature": "fun set(utc: Instant, recalculateTrains: Boolean = false): SimulationTimeChange =",
+          "documentation": "UTC en secondes entières. Écriture explicite, sans nouvelle tentative.",
+          "line": 49
+        },
+        {
+          "name": "Signals",
+          "owner": "Game",
+          "kind": "class",
+          "signature": "class Signals internal constructor(private val client: NimbyClient)",
+          "documentation": "",
+          "line": 53
+        },
+        {
+          "name": "showTexture",
+          "owner": "Game.Signals",
+          "kind": "fun",
+          "signature": "fun showTexture(id: Long, catalogue: String, image: String, durationMillis: Int): Unit =",
+          "documentation": "Affichage seul, de 1 à 60 secondes. Ne change pas une permission.",
+          "line": 55
+        },
+        {
+          "name": "restoreTexture",
+          "owner": "Game.Signals",
+          "kind": "fun",
+          "signature": "fun restoreTexture(id: Long): Unit = client.restoreSignalTexture(id)",
+          "documentation": "",
+          "line": 57
+        },
+        {
+          "name": "Mods",
+          "owner": "Game",
+          "kind": "class",
+          "signature": "class Mods internal constructor(private val client: NimbyClient)",
+          "documentation": "",
+          "line": 60
+        },
+        {
+          "name": "status",
+          "owner": "Game.Mods",
+          "kind": "fun",
+          "signature": "fun status(id: String): ControlResponse = client.modControl(id, ControlRequest(ControlOperation.Status))",
+          "documentation": "Interroge le mod chargé. Une erreur de transport n'est pas une preuve\nd'absence : l'exception reste visible au programme appelant.",
+          "line": 63
+        },
+        {
+          "name": "control",
+          "owner": "Game.Mods",
+          "kind": "fun",
+          "signature": "fun control(id: String, leaseMillis: Int = 5000): ModControlSession = client.acquireModControl(id, leaseMillis)",
+          "documentation": "Bail explicite pour une recette. Le mod décide des forçages acceptés.",
+          "line": 65
+        },
+        {
+          "name": "Construction",
+          "owner": "Game",
+          "kind": "class",
+          "signature": "class Construction internal constructor(private val client: NimbyClient)",
+          "documentation": "Expérimental : nécessite le pont de construction séparé.",
+          "line": 69
+        },
+        {
+          "name": "prepare",
+          "owner": "Game.Construction",
+          "kind": "fun",
+          "signature": "fun prepare(sourceSignal: Long): ConstructionResult = client.prepareConstruction(sourceSignal)",
+          "documentation": "",
+          "line": 70
+        },
+        {
+          "name": "create",
+          "owner": "Game.Construction",
+          "kind": "fun",
+          "signature": "fun create(token: Long, sourceSignal: Long, positions: List<Position>): ConstructionResult =",
+          "documentation": "",
+          "line": 71
+        },
+        {
+          "name": "poll",
+          "owner": "Game.Construction",
+          "kind": "fun",
+          "signature": "fun poll(token: Long): ConstructionResult = client.pollConstruction(token)",
+          "documentation": "",
+          "line": 73
+        },
+        {
+          "name": "undo",
+          "owner": "Game.Construction",
+          "kind": "fun",
+          "signature": "fun undo(token: Long): ConstructionResult = client.undoConstruction(token)",
+          "documentation": "",
+          "line": 74
+        }
+      ]
+    },
+    {
+      "file": "NimbyClient.kt",
+      "path": "kotlin-client/src/main/kotlin/fr/nimby/sdk/NimbyClient.kt",
+      "runtime": "Kotlin/JVM",
+      "package": "fr.nimby.sdk",
+      "sha256": "4f9c954ec5c008aaee26b0bf23c993844b72c82cc7253693853168ece9176cb9",
+      "symbols": [
+        {
+          "name": "NimbyClient",
+          "owner": "",
+          "kind": "class",
+          "signature": "class NimbyClient private constructor(private val lease: LibraryLease, private var session: Long, private val processId: Int) : ObservationClient",
+          "documentation": "Owns one session. All returned observations are immutable JVM copies.",
+          "line": 12
+        },
+        {
+          "name": "open",
+          "owner": "NimbyClient.Companion",
+          "kind": "fun",
+          "signature": "fun open(libraryPath: Path, processId: Int): NimbyClient",
+          "documentation": "",
+          "line": 15
+        },
+        {
+          "name": "readTrain",
+          "owner": "NimbyClient",
+          "kind": "fun",
+          "signature": "@Synchronized fun readTrain(trainId: Long): DrivingObservation?",
+          "documentation": "Reads only this train. No network capture, hook installation or game write.\nNull means absent/unstable data; other native failures throw SdkException.\nSerialized with capture(), commands and close() on this connection.\nA result owns JVM values and remains usable after the client is closed.",
+          "line": 57
+        },
+        {
+          "name": "prepareConstruction",
+          "owner": "NimbyClient",
+          "kind": "fun",
+          "signature": "@Synchronized fun prepareConstruction(sourceSignal: Long): ConstructionResult =",
+          "documentation": "Explicitly loads the experimental construction bridge. Capture alone never does.",
+          "line": 71
+        },
+        {
+          "name": "createSignals",
+          "owner": "NimbyClient",
+          "kind": "fun",
+          "signature": "@Synchronized fun createSignals(token: Long, sourceSignal: Long, positions: List<Position>): ConstructionResult =",
+          "documentation": "",
+          "line": 74
+        },
+        {
+          "name": "undoConstruction",
+          "owner": "NimbyClient",
+          "kind": "fun",
+          "signature": "@Synchronized fun undoConstruction(token: Long): ConstructionResult = construction(3,token,0,emptyList())",
+          "documentation": "Refuses if another command replaced the series at the top of native undo history.",
+          "line": 78
+        },
+        {
+          "name": "pollConstruction",
+          "owner": "NimbyClient",
+          "kind": "fun",
+          "signature": "@Synchronized fun pollConstruction(token: Long): ConstructionResult",
+          "documentation": "Refuses if another command replaced the series at the top of native undo history.",
+          "line": 80
+        },
+        {
+          "name": "capture",
+          "owner": "NimbyClient",
+          "kind": "fun",
+          "signature": "@Synchronized override fun capture(selectedTrainId: Long?): Observation",
+          "documentation": "",
+          "line": 119
+        },
+        {
+          "name": "setSimulationDateTime",
+          "owner": "NimbyClient",
+          "kind": "fun",
+          "signature": "@Synchronized fun setSimulationDateTime(utc: java.time.Instant, recalculateTrains: Boolean = false): SimulationTimeChange",
+          "documentation": "Explicit mutation, never retried. A failure can follow partial native work;\ncapture again before deciding on another action. Input uses whole UTC seconds;\nthe native subsecond timer phase is preserved in the returned clock.",
+          "line": 204
+        },
+        {
+          "name": "showSignalTextureFor",
+          "owner": "NimbyClient",
+          "kind": "fun",
+          "signature": "@Synchronized fun showSignalTextureFor(signal: Long, catalogue: String, path: String, durationMillis: Int)",
+          "documentation": "Visual override only. Does not change signalling permissions or mod decisions.",
+          "line": 218
+        },
+        {
+          "name": "restoreSignalTexture",
+          "owner": "NimbyClient",
+          "kind": "fun",
+          "signature": "@Synchronized fun restoreSignalTexture(signal: Long)",
+          "documentation": "",
+          "line": 225
+        },
+        {
+          "name": "modControl",
+          "owner": "NimbyClient",
+          "kind": "fun",
+          "signature": "@Synchronized fun modControl(modId: String, request: ControlRequest): ControlResponse",
+          "documentation": "Sends exactly once to the mod already hosted in this explicit game PID.",
+          "line": 232
+        },
+        {
+          "name": "acquireModControl",
+          "owner": "NimbyClient",
+          "kind": "fun",
+          "signature": "@Synchronized fun acquireModControl(modId: String, leaseMillis: Int = 5000): ModControlSession",
+          "documentation": "",
+          "line": 259
+        },
+        {
+          "name": "close",
+          "owner": "NimbyClient",
+          "kind": "fun",
+          "signature": "@Synchronized override fun close()",
+          "documentation": "",
+          "line": 268
+        }
+      ]
+    },
+    {
+      "file": "Observation.kt",
+      "path": "kotlin-client/src/main/kotlin/fr/nimby/sdk/Observation.kt",
+      "runtime": "Kotlin/JVM",
+      "package": "fr.nimby.sdk",
+      "sha256": "17eb445ecf393ce143b9f18da77d0db1d3dbd5f4459b8db4a5d864f99e4c3bd9",
+      "symbols": [
+        {
+          "name": "Train",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class Train(val id: Long, val name: String, val position: Position?, val speedKmh: Double?, val speedDefaulted: Boolean)",
+          "documentation": "IDs are opaque. Unknown observations are null, never a manufactured clear state.",
+          "line": 4
+        },
+        {
+          "name": "Position",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class Position(val trackId: Long, val fraction: Double, val direction: Int)",
+          "documentation": "",
+          "line": 5
+        },
+        {
+          "name": "Track",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class Track(val id: Long, val stationId: Long?, val speedLimitKmh: Double)",
+          "documentation": "",
+          "line": 6
+        },
+        {
+          "name": "Station",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class Station(val id: Long, val name: String)",
+          "documentation": "",
+          "line": 7
+        },
+        {
+          "name": "TrackNode",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class TrackNode(val id: Long, val linkA: Long?, val linkB: Long?, val x: Double, val y: Double)",
+          "documentation": "",
+          "line": 8
+        },
+        {
+          "name": "TrackJunction",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class TrackJunction(val branchTrackId: Long, val mainTrackId: Long, val fraction: Double, val mainDirection: Int, val branchDirection: Int)",
+          "documentation": "",
+          "line": 9
+        },
+        {
+          "name": "TrackUsage",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class TrackUsage(val trainId: Long, val trackId: Long, val from: Double, val to: Double)",
+          "documentation": "",
+          "line": 10
+        },
+        {
+          "name": "Signal",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class Signal(val id: Long, val position: Position, val kind: Int, val textureState: Int?, val specificState: String?, val texturePath: String?)",
+          "documentation": "",
+          "line": 11
+        },
+        {
+          "name": "Service",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class Service(\n    val trainId: Long, val lineName: String?, val status: Int?, val stationId: Long?, val flags: Int,\n    val lineId: Long? = null, val stopStationId: Long? = null, val stopIndex: Int? = null,\n    val gameEpochSeconds: Long? = null, val gameTimeUs: Long? = null,\n    val arrivalTimeUs: Long? = null, val departureTimeUs: Long? = null, val dispatchTimeUs: Long? = null,\n)",
+          "documentation": "",
+          "line": 12
+        },
+        {
+          "name": "TrainDetails",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class TrainDetails(val trainId: Long, val passengers: Int?, val scheduleId: Long?, val shiftId: Long?)",
+          "documentation": "",
+          "line": 18
+        },
+        {
+          "name": "Platform",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class Platform(val trackId: Long, val stationId: Long?, val name: String?)",
+          "documentation": "",
+          "line": 19
+        },
+        {
+          "name": "LineStop",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class LineStop(val lineId: Long, val trackId: Long, val stationId: Long?, val index: Int, val arrivalOffsetSeconds: Int?, val departureOffsetSeconds: Int?)",
+          "documentation": "",
+          "line": 20
+        },
+        {
+          "name": "SimulationClock",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class SimulationClock(val epochSeconds: Long, val ticks: Long)",
+          "documentation": "",
+          "line": 21
+        },
+        {
+          "name": "toInstant",
+          "owner": "SimulationClock",
+          "kind": "fun",
+          "signature": "fun toInstant(): java.time.Instant",
+          "documentation": "Native ticks are hundredths of a second; the epoch may precede 1970.",
+          "line": 23
+        },
+        {
+          "name": "SimulationTimeChange",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class SimulationTimeChange(val clock: SimulationClock, val interventions: Long)",
+          "documentation": "",
+          "line": 28
+        },
+        {
+          "name": "Observation",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class Observation(\n    val capturedAtMillis: Long,\n    val processId: Int,\n    val gameHash: String,\n    val trains: List<Train>,\n    val tracks: List<Track>,\n    val stations: List<Station>,\n    val nodes: List<TrackNode>,\n    val junctions: List<TrackJunction>,\n    val signals: List<Signal>,\n    val services: List<Service>,\n    val details: List<TrainDetails>,\n    val platforms: List<Platform>,\n    val reservations: List<TrackUsage>?,\n    val occupations: List<TrackUsage>?,\n    val selectedPath: List<Long>?,\n    val lineStops: List<LineStop>?,\n    val clock: SimulationClock?,\n    /** Null: old DLL or unsupported capture/profile. Missing rows remain unknown. */\n    val trackMetrics: List<TrackMetric>? = null,\n)",
+          "documentation": "",
+          "line": 29
+        },
+        {
+          "name": "ObservationClient",
+          "owner": "",
+          "kind": "interface",
+          "signature": "interface ObservationClient : AutoCloseable",
+          "documentation": "",
+          "line": 51
+        },
+        {
+          "name": "capture",
+          "owner": "ObservationClient",
+          "kind": "fun",
+          "signature": "fun capture(selectedTrainId: Long? = null): Observation",
+          "documentation": "",
+          "line": 52
+        },
+        {
+          "name": "GameProcess",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class GameProcess(val pid: Int, val executable: String)",
+          "documentation": "",
+          "line": 55
+        },
+        {
+          "name": "GameProcesses",
+          "owner": "",
+          "kind": "object",
+          "signature": "object GameProcesses",
+          "documentation": "",
+          "line": 56
+        },
+        {
+          "name": "discover",
+          "owner": "GameProcesses",
+          "kind": "fun",
+          "signature": "fun discover(): List<GameProcess> = ProcessHandle.allProcesses().use { processes ->",
+          "documentation": "",
+          "line": 57
+        },
+        {
+          "name": "SdkException",
+          "owner": "",
+          "kind": "class",
+          "signature": "class SdkException(val status: Int, operation: String) : IllegalStateException(\"$operation : ${when (status) {\n    2 -> \"accès au processus ou au fichier impossible\"\n    7 -> \"version du jeu non prise en charge par ce SDK\"\n    8 -> \"observation indisponible\"\n    11 -> \"jeu fermé\"\n    else -> \"erreur SDK $status\"\n}}\")",
+          "documentation": "",
+          "line": 65
+        }
+      ]
+    },
+    {
+      "file": "TrackMetric.kt",
+      "path": "kotlin-client/src/main/kotlin/fr/nimby/sdk/TrackMetric.kt",
+      "runtime": "Kotlin/JVM",
+      "package": "fr.nimby.sdk",
+      "sha256": "469abd4a5717fe5f991271d53d0d7d70a4ba1543647aa3ea83ade6fe91118370",
+      "symbols": [
+        {
+          "name": "TrackMetric",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class TrackMetric(val trackId: Long, val lengthM: Double)",
+          "documentation": "Metric used by the native route scanner, in metres per unit fraction.\nAvailable only for a qualified game binary and a stable observed header.\nDoes not certify the topology, construction state or permission to edit.",
+          "line": 10
+        },
+        {
+          "name": "offsetM",
+          "owner": "TrackMetric",
+          "kind": "fun",
+          "signature": "fun offsetM(fraction: Double): Double",
+          "documentation": "",
+          "line": 14
+        },
+        {
+          "name": "fraction",
+          "owner": "TrackMetric",
+          "kind": "fun",
+          "signature": "fun fraction(offsetM: Double): Double",
+          "documentation": "",
+          "line": 18
+        },
+        {
+          "name": "distanceM",
+          "owner": "TrackMetric",
+          "kind": "fun",
+          "signature": "fun distanceM(fromFraction: Double, toFraction: Double): Double = abs(offsetM(toFraction) - offsetM(fromFraction))",
+          "documentation": "",
+          "line": 22
+        },
+        {
+          "name": "positionAtMetres",
+          "owner": "TrackMetric",
+          "kind": "fun",
+          "signature": "fun positionAtMetres(offsetM: Double, direction: TrackDirection): Position =",
+          "documentation": "Position depuis l'origine de cette voie, en mètres. Le sens ne change\npas cette origine. Une position n'est pas une autorisation de construire.",
+          "line": 26
+        },
+        {
+          "name": "TrackDirection",
+          "owner": "",
+          "kind": "class",
+          "signature": "enum class TrackDirection(val nativeValue: Int) {\nForward(1), Backward(-1)\n}",
+          "documentation": "Sens dans la représentation de la voie : croissant ou décroissant.",
+          "line": 31
+        }
+      ]
+    }
+  ]
+}

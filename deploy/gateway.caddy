@@ -1,0 +1,5 @@
+# BEGIN NRF WIKI
+wiki.nimbyrails-france.fr {
+    reverse_proxy nrf-wiki:8080
+}
+# END NRF WIKI
