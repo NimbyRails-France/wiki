@@ -13,7 +13,15 @@ async function walk(path) {
     )
   ).flat()
 }
-const files = (await walk(root)).filter((p) => p.endsWith('.html'))
+const outputFiles = await walk(root)
+// dist is a Nuxt link to this public directory. Keep local compilation outputs
+// and logs in .validation, never in the archive served to visitors.
+for (const file of outputFiles)
+  assert(
+    !/\.(?:log|exe|dll|klib|jar|kt|kts|zip)$/i.test(file),
+    `Artefact local dans le site public : ${file}`,
+  )
+const files = outputFiles.filter((p) => p.endsWith('.html'))
 const documents = new Map(
   await Promise.all(files.map(async (file) => [file, await readFile(file, 'utf8')])),
 )

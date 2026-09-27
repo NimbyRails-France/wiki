@@ -47,7 +47,7 @@ test('tutorial supplies every project file without cloning an example', async ({
         )
       expect(content, name).toBeTruthy()
       expect(content).not.toContain('\\n')
-      const path = resolve('dist/tutorial-project', name)
+      const path = resolve('.validation/tutorial-project', name)
       await mkdir(dirname(path), { recursive: true })
       await writeFile(path, content!, 'utf8')
     }

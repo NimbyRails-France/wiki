@@ -5,7 +5,12 @@ import { text, code, note, links, table } from './schema'
 const descriptions: Record<string, string> = {
   Nimby: 'Point d’entrée du client : connexion et fonctions regroupées par usage dans Game.',
   Mod: 'Observations, réglages, décisions et contrats de signalisation et de conduite.',
-  SignalMod: 'Déclarer un mod, ses modèles et ses règles avec des indications Kotlin typées.',
+  SignalMod:
+    'Indication et ancienne déclaration à vocabulaire commun ; préférer signalModel pour les nouveaux projets.',
+  SignalModel: 'Modèles indépendants : enums, règles, images, conduite et lecture typée du voisin.',
+  ModServices: 'Déclarer un outil ou une action disponible lorsqu’un autre mod est chargé.',
+  ToolContext:
+    'Lire le réseau, préparer une pose, publier des boutons et écrire dans le journal depuis un outil.',
   SignalTypes: 'Valider les identifiants, catalogues et cases des modèles de signaux.',
   AutomaticDriving: 'Construire des consignes génériques avec les vitesses choisies par votre mod.',
   Files: 'Lire un fichier UTF-8 borné depuis Kotlin/Native.',
@@ -19,6 +24,44 @@ const descriptions: Record<string, string> = {
     'Journaux applicatifs avec rotation, regroupement des répétitions et suivi des erreurs.',
 }
 const extra: Record<string, Section[]> = {
+  ToolContext: [
+    {
+      id: 'contrat-outil',
+      title: 'Contexte, unités et opérations',
+      blocks: [
+        text(
+          'Le contexte est prêt à utiliser dans service et onTick. Il appartient au callback courant : conservez les valeurs copiées et les tickets, jamais ce contexte. Le SDK refuse les appels après le retour du callback.',
+        ),
+        table(
+          ['Valeur', 'Contrat'],
+          [
+            ['ToolTrack.lengthM', 'Mètres, optionnel ; null impose d’arrêter le parcours.'],
+            ['SignalPosition.fraction', 'Fraction native strictement entre 0 et 1 pour une pose.'],
+            [
+              'SignalPosition.direction',
+              'Sens natif -1 ou 1 ; distinct du sens visuel de certains modèles.',
+            ],
+            [
+              'ConstructionResult.reason',
+              'Code de refus du pont natif ; à conserver dans le journal.',
+            ],
+            [
+              'ToolButton',
+              'Identifiant, libellé, état activé ; au maximum 12 boutons par panneau.',
+            ],
+            [
+              'showPanel',
+              'Message UTF-8 limité à 256 octets ; remplace l’action qui a ouvert l’outil.',
+            ],
+          ],
+        ),
+        note(
+          'Ces API sont expérimentales sur la branche de développement. La construction nécessite le pont Windows correspondant. Les essais en jeu du nouveau panneau restent à effectuer.',
+        ),
+        links({ label: 'Créer un outil optionnel', to: '/mods/outils-optionnels' }),
+      ],
+    },
+  ],
   TrackMetric: [
     {
       id: 'contrat',
@@ -118,8 +161,11 @@ export const referenceArticles: Article[] = snapshot.files.map((file) => {
     title: name,
     group: 'Référence',
     description: descriptions[name] || 'Déclarations publiques Kotlin du SDK.',
-    status:
-      name === 'Construction' ? 'experimental' : name === 'SignalMod' ? 'development' : undefined,
+    status: ['Construction', 'ToolContext', 'ModServices'].includes(name)
+      ? 'experimental'
+      : name === 'SignalMod'
+        ? 'development'
+        : undefined,
     sections,
   }
 })

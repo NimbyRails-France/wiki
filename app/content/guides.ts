@@ -1,6 +1,7 @@
 import type { Article } from './schema'
 import { text, code, note, list, table, links } from './schema'
 import firstMod from './snippets/FirstMod.kt?raw'
+import signalModels from './snippets/SignalModels.kt?raw'
 
 export const guides: Article[] = [
   {
@@ -105,7 +106,7 @@ export const guides: Article[] = [
             'Le SDK installé dans le jeu et le kit de développement ont deux rôles différents. Le kit contient sdk.json, klib, bridge et gradle-repository. Le Hub permet de sélectionner son chemin dans les réglages développeur ; il ne télécharge pas ce kit à la place du SDK du jeu.',
           ),
           note(
-            'La nouvelle API signalMod présentée ici suit la branche de développement. Le kit alpha.1 publié avant cette refonte ne contient pas encore cette API. Utilisez un kit construit depuis cette branche pour ces pages, ou attendez sa prochaine distribution. Le lien reste celui du dernier kit publié ; ce n’est pas une promesse de compatibilité avec les nouveautés.',
+            'La nouvelle API signalModel présentée ici suit la branche de développement. Le kit alpha.1 publié avant cette refonte ne contient pas encore cette API. Utilisez un kit construit depuis cette branche pour ces pages, ou attendez sa prochaine distribution. Le lien reste celui du dernier kit publié ; ce n’est pas une promesse de compatibilité avec les nouveautés.',
             'Version de ce guide',
           ),
           text(
@@ -275,8 +276,8 @@ textures=mon_premier_signal`,
         title: 'Lire le code',
         blocks: [
           list(
-            'signalMod crée le mod et demande un repli explicite si les données manquent.',
-            'signal déclare un modèle constructible associé à un catalogue de textures.',
+            'signalModel déclare un modèle, ses enums et ses replis pour les données manquantes.',
+            'signalMod assemble le paquet ; signal ajoute chaque modèle constructible.',
             'checkbox crée un réglage et renvoie une référence utilisable avec enabled.',
             'rules reçoit les observations du signal et renvoie une Indication.',
             'images choisit l’image ; driving choisit la consigne de conduite.',
@@ -308,15 +309,64 @@ textures=mon_premier_signal`,
       'Plusieurs modèles dans un mod, des règles locales et des décisions liées au signal suivant.',
     sections: [
       {
-        id: 'types',
-        title: 'Un bloc signal par modèle',
+        id: 'organisation',
+        title: 'Garder la même composition pour chaque modèle',
         blocks: [
-          code(
-            'signal("monmod.principal", "Signal principal", "textures_principal") {\n    rules { Indication(Aspect.Closed, Reason.Unknown) }\n}\n\nsignal("monmod.annonce", "Signal d’annonce", "textures_annonce") {\n    rules { next } // null demande la résolution du signal suivant\n}',
-            'À l’intérieur de signalMod',
+          text(
+            'Le point d’entrée assemble les modèles avec signalMod. Chaque modèle a son dossier et les mêmes rôles. Commencez avec peu de fichiers, puis séparez les rôles ci-dessous quand le modèle grandit ; les fonctions Kotlin se branchent directement dans signalModel.',
+          ),
+          table(
+            ['Rôle', 'Contenu du modèle'],
+            [
+              ['Déclaration', 'Identité, catalogue, replis et raccordement des fonctions au SDK.'],
+              [
+                'États et motifs',
+                'Deux enums locales et éventuellement un alias Indication pour la décision.',
+              ],
+              [
+                'Panneau et réglages',
+                'Cases visibles, libellés et valeurs utilisées par les règles.',
+              ],
+              ['Règles', 'Choix de la décision à partir du contexte SDK et du voisin.'],
+              ['Textures', 'Choix du SVG et phase de clignotement au temps simulé.'],
+              ['Conduite et vitesses', 'Consigne générique et valeurs choisies par votre modèle.'],
+              ['Diagnostics', 'Décisions considérées comme des anomalies.'],
+            ],
           ),
           text(
-            'Chaque type possède un identifiant et un catalogue uniques. Ses cases sont indépendantes : deux types peuvent avoir une case active avec des défauts différents. Les enums d’indication et de motif sont communes au mod pour interpréter le signal voisin.',
+            'Les intégrations facultatives communes à plusieurs modèles appartiennent au niveau du mod. Ne recopiez pas le contexte SDK, le parcours du réseau ou un moteur de freinage dans chaque dossier. Le SDK prépare ces informations et exécute les consignes ; les règles restent chez vous.',
+          ),
+        ],
+      },
+      {
+        id: 'types',
+        title: 'Un modèle, ses propres enums',
+        blocks: [
+          code(signalModels, 'Deux modèles avec leurs propres types'),
+          text(
+            'Chaque modèle possède ses enums d’indication et de motif, ses replis, ses règles, ses images et ses consignes. Le mod ne fait que les assembler. Ses cases sont locales : deux modèles peuvent avoir une case active avec des défauts différents.',
+          ),
+          text(
+            'Cet exemple illustre le dialogue entre deux modèles fictifs. Il ne fournit aucune consigne de conduite : ajoutez driving selon vos règles et déclarez les quatre SVG dans votre catalogue de ressources.',
+          ),
+          table(
+            ['Élément', 'Rôle', 'Exemple fictif'],
+            [
+              ['Mod', 'Paquet installé, identité et liste des modèles.', 'mon-reseau'],
+              [
+                'Type de signal',
+                'Règles, cases et catalogue propres à un modèle constructible.',
+                'mon-reseau.principal',
+              ],
+              [
+                'Signal posé',
+                'Une instance de ce type sur une voie, avec son ID et ses réglages.',
+                'Un signal choisi dans une partie',
+              ],
+            ],
+          ),
+          text(
+            'Créer un nouveau type ne nécessite pas de créer un autre mod. Choisissez un ID de mod distinct de ceux des types. Un fichier par modèle permet de faire évoluer ses règles sans ajouter des conditions partout dans le point d’entrée.',
           ),
           note(
             'Le runtime accepte jusqu’à 16 types par mod et le service UI jusqu’à 16 panneaux au total. Chaque type accepte jusqu’à 64 cases. La résolution Kotlin est bornée à 512 signaux par appel.',
@@ -331,7 +381,14 @@ textures=mon_premier_signal`,
             'Le SDK tente d’abord une décision locale avec next = null. Si votre règle renvoie null, il résout le signal suivant et rappelle la règle avec sa décision. Un lien absent ou un cycle sans décision locale utilise invalidNetwork. Une fermeture locale peut donc interrompre la dépendance au voisin.',
           ),
           code(
-            'rules {\n    when {\n        !fresh || !routeKnown -> Indication(Aspect.Closed, Reason.Unknown)\n        block == Occupancy.Occupied -> Indication(Aspect.Closed, Reason.Occupied)\n        else -> next\n    }\n}',
+            'val voisin = next?.of(mainSignal)\n// Indication<MainAspect, MainReason>?\n// null : pas ce modèle (ou pas encore de voisin).\nval idDuVoisin = next?.id\nval typeDuVoisin = next?.type?.id\nval consigneDuVoisin = next?.drivingRule',
+            'Dans la règle du modèle amont',
+          ),
+          text(
+            'Le SDK fournit directement next à tous les modèles : ID, type, décision et consigne déclarée par le voisin. Aucun adaptateur ni fichier Neighbours à écrire. Vous pouvez lire sa consigne générique ou utiliser of(mainSignal) pour ses enums. Le modèle amont reste responsable de son interprétation et du repli pour les informations inconnues.',
+          ),
+          text(
+            'Le contexte fournit aussi settings, observation, fresh et settingsStatus. Un profil absent reçoit les défauts déclarés ; un profil indisponible rend l’observation non fraîche. Le statut est conservé pour vos règles. next concerne le lien aval résolu dans le réseau du mod, pas tous les signaux géographiquement proches ni les décisions privées des autres mods.',
           ),
           text(
             'Une règle qui dépend du voisin doit aussi décider comment traiter ses propres observations inconnues. Le SDK ne transforme pas automatiquement un canton inconnu en canton libre.',
@@ -343,12 +400,89 @@ textures=mon_premier_signal`,
         title: 'Observer un train en approche',
         blocks: [
           code(
-            'signal("monmod.approche", "Signal à l’approche", "textures_approche") {\n    observeApproach = true\n    rules {\n        if (fresh && routeKnown && block == Occupancy.Clear && approachingTrain != null)\n            Indication(Aspect.Open, Reason.Clear)\n        else Indication(Aspect.Closed, Reason.Unknown)\n    }\n}',
+            'signalModel("monmod.approche", "Signal à l’approche", "textures_approche",\n    fallback = Indication(Aspect.Closed, Reason.Unknown)) {\n    observeApproach = true\n    rules {\n        if (fresh && routeKnown && block == Occupancy.Clear && approachingTrain != null\n            && !observation.forcedStop && !observation.lampFailed)\n            Indication(Aspect.Open, Reason.Clear)\n        else Indication(Aspect.Closed, Reason.Unknown)\n    }\n    images { if (it.aspect == Aspect.Open) "open.svg" else "closed.svg" }\n}',
           ),
           text(
             'approachingTrain contient un identifiant de train lorsque l’observation trouve son premier signal orienté dans le sens de marche. C’est une observation géométrique en amont ; elle ne prouve ni réservation ni autorisation de mouvement.',
           ),
-          links({ label: 'Tous les types de contexte', to: '/reference/signalmod' }),
+          links({ label: 'Tous les types de contexte', to: '/reference/signalmodel' }),
+        ],
+      },
+    ],
+  },
+  {
+    slug: 'mods/outils-optionnels',
+    title: 'Coopérer avec un autre mod',
+    group: 'Créer un mod',
+    status: 'experimental',
+    description: 'Un bouton facultatif, un service Kotlin et deux mods qui restent indépendants.',
+    sections: [
+      {
+        id: 'bouton',
+        title: 'Proposer une action si le fournisseur est présent',
+        blocks: [
+          code(
+            'signalModel("mon-reseau.principal", "Signal principal", "mes_textures",\n    fallback = Indication(Aspect.Closed, Reason.Unknown)) {\n    action("inspecter", "Inspecter ce signal",\n        whenMod = "mon-inspecteur", service = "inspect.v1")\n    rules { Indication(Aspect.Closed, Reason.Unknown) }\n    images { "closed.svg" }\n}',
+            'Dans votre déclaration signalModel',
+          ),
+          text(
+            'Le SDK affiche le bouton seulement si mon-inspecteur déclare inspect.v1 et dispose d’une observation fraîche de la même partie. Son absence masque le bouton. Elle ne désactive aucune règle du signal et n’ajoute aucune dépendance obligatoire au paquet.',
+          ),
+          note(
+            'Cette API appartient au SDK de développement. Le kit alpha.1 actuellement téléchargeable précède ces ajouts. Le nouveau panneau doit encore être qualifié en jeu.',
+          ),
+        ],
+      },
+      {
+        id: 'outil',
+        title: 'Créer votre propre fournisseur',
+        blocks: [
+          code(
+            'package nimby.mod\n\nimport nimby.*\n\nfun createMod() = toolMod("mon-inspecteur", "Mon inspecteur") {\n    service("inspect.v1") { demande ->\n        log("Signal choisi : ${demande.signalId}")\n        showPanel(demande, "Signal sélectionné", listOf(\n            ToolButton("actualiser", "Actualiser")\n        ))\n    }\n}',
+            'src/main/kotlin/Entry.kt',
+          ),
+          text(
+            'Un outil possède son propre projet et son propre mod.json, préparés comme dans le tutoriel d’installation. Il ne déclare pas de faux type de signal. Le bloc service reçoit les clics, y compris ceux de ses nouveaux boutons : demande.action indique lequel a été choisi.',
+          ),
+          text(
+            'Le SDK appelle le service sur le worker de l’outil. Il copie les messages et rejette les clics périmés lors d’un changement de partie, d’un déchargement du fournisseur ou d’un remplacement des boutons. Il n’exécute pas le code du mod depuis le thread d’affichage.',
+          ),
+          links({ label: 'Préparer un projet', to: '/commencer/installation' }),
+        ],
+      },
+      {
+        id: 'contexte',
+        title: 'Lire et agir depuis le callback',
+        blocks: [
+          table(
+            ['Appel', 'Usage'],
+            [
+              [
+                'network()',
+                'Obtenir une nouvelle copie du réseau et de ses métriques disponibles.',
+              ],
+              [
+                'showPanel(demande, message, boutons)',
+                'Remplacer votre action par un message et au maximum 12 boutons.',
+              ],
+              ['log(message)', 'Écrire un événement dans le journal des mods.'],
+              [
+                'onTick { … }',
+                'Suivre une opération en cours sans dépendre d’un clic supplémentaire.',
+              ],
+              ['onStop { … }', 'Libérer la mémoire propre à l’outil lors de son arrêt.'],
+            ],
+          ),
+          text(
+            'Conservez les valeurs copiées, pas le ToolContext du callback. Les propriétés worldId et generation servent à invalider vos mémoires lorsque la partie change. Un clic ne donne pas à lui seul l’autorisation de construire.',
+          ),
+          text(
+            'Pour construire : préparez un ticket, capturez le réseau après la préparation, calculez les positions et demandez une confirmation. Une réponse Pending se suit avec pollConstruction sur le même ticket. Ne renvoyez pas createSignals après une réponse incertaine. La pose utilise le pont Windows expérimental.',
+          ),
+          links(
+            { label: 'Types des services', to: '/reference/modservices' },
+            { label: 'Contexte et construction', to: '/reference/toolcontext' },
+          ),
         ],
       },
     ],
@@ -753,9 +887,10 @@ textures=mon_premier_signal`,
             'undoConstruction(token) refuse si une autre commande a remplacé la série au sommet de l’historique natif. Vérifiez canUndo et l’état retourné. READY, APPLIED, UNDONE, REJECTED, PARTIAL et PENDING sont distincts.',
           ),
           note(
-            'L’intégration optionnelle d’un bouton de répétition dans le panneau d’un signal n’est pas encore une API publique disponible. Cette page ne prétend pas qu’un mod peut déjà ajouter arbitrairement des boutons au jeu.',
+            'La branche de développement comprend maintenant les actions optionnelles et le mod Signal Placement. Le nouveau panneau natif est testé hors jeu ; son fonctionnement dans une partie réelle reste à qualifier. Cette extension n’est pas incluse dans le kit alpha.1 déjà publié.',
           ),
           links({ label: 'Résultats et états de construction', to: '/reference/construction' }),
+          links({ label: 'Boutons et outils optionnels', to: '/mods/outils-optionnels' }),
         ],
       },
     ],

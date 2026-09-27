@@ -35,6 +35,22 @@ test('typed DSL function name survives nested generic bounds', () => {
   assert.match(symbol.signature, /fallback: Pair<A, R>/)
 })
 
+test('internal constructors hide transport parameters but preserve public properties', () => {
+  const symbols = declarations(`class Context @PublishedApi internal constructor(
+    val world: String, override val generation: Long,
+    private val native: (Int, List<Pair<Long, Int>>) -> Int,
+) {
+  fun close() {}
+}`)
+  assert.equal(symbols[0].signature, 'class Context')
+  assert.deepEqual(
+    symbols.slice(1).map((s) => s.name),
+    ['world', 'generation', 'close'],
+  )
+  assert(symbols.slice(1).every((s) => s.owner === 'Context'))
+  assert(!JSON.stringify(symbols).includes('private val native'))
+})
+
 test('snapshot covers the two SDK surfaces without native internals', async () => {
   const snapshot = JSON.parse(
     await readFile(new URL('../app/content/generated/api.json', import.meta.url), 'utf8'),

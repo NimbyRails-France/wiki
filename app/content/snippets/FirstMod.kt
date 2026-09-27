@@ -6,24 +6,23 @@ import nimby.*
 enum class Aspect { Closed, Open }
 enum class Reason { Unknown, Disabled, Occupied, Clear }
 
-fun createMod(): SignallingMod = signalMod(
-    id = "mon-premier-mod",
+val firstSignal = signalModel(
+    id = "monmod.signal",
     title = "Mon premier signal",
+    textures = "mon_premier_signal",
     fallback = Indication(Aspect.Closed, Reason.Unknown)
 ) {
-    signal("monmod.signal", "Mon premier signal", "mon_premier_signal") {
-        val active = checkbox("active", "Activer le signal", defaultValue = true)
+    val active = checkbox("active", "Activer le signal", defaultValue = true)
 
-        rules {
-            when {
-                settingsStatus == SettingsStatus.Unavailable -> Indication(Aspect.Closed, Reason.Unknown)
-                !enabled(active) -> Indication(Aspect.Closed, Reason.Disabled)
-                !fresh || !routeKnown || observation.lampFailed || observation.forcedStop ->
-                    Indication(Aspect.Closed, Reason.Unknown)
-                block == Occupancy.Clear -> Indication(Aspect.Open, Reason.Clear)
-                block == Occupancy.Occupied -> Indication(Aspect.Closed, Reason.Occupied)
-                else -> Indication(Aspect.Closed, Reason.Unknown)
-            }
+    rules {
+        when {
+            settingsStatus == SettingsStatus.Unavailable -> Indication(Aspect.Closed, Reason.Unknown)
+            !enabled(active) -> Indication(Aspect.Closed, Reason.Disabled)
+            !fresh || !routeKnown || observation.lampFailed || observation.forcedStop ->
+                Indication(Aspect.Closed, Reason.Unknown)
+            block == Occupancy.Clear -> Indication(Aspect.Open, Reason.Clear)
+            block == Occupancy.Occupied -> Indication(Aspect.Closed, Reason.Occupied)
+            else -> Indication(Aspect.Closed, Reason.Unknown)
         }
     }
 
@@ -40,4 +39,9 @@ fun createMod(): SignallingMod = signalMod(
             Aspect.Open -> AutomaticDriving.clear()
         }
     }
+}
+
+// Le mod est le paquet ; le modèle ci-dessus garde ses propres types et règles.
+fun createMod(): SignallingMod = signalMod("mon-premier-mod", "Mon premier mod") {
+    signal(firstSignal)
 }

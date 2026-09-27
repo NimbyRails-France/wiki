@@ -87,6 +87,46 @@ export function declarations(source) {
         ?.replace(/^\s*\* ?/gm, '')
         .trim() || ''
     let signature = header
+    const constructorProperties = []
+    // An internal constructor is not an invitation to provide native handles
+    // or callbacks. Keep its public properties as members, hide transport args.
+    const hiddenConstructor =
+      kind === 'class' && /\b(private|internal|protected)\s+constructor\s*\(/.exec(header)
+    if (hiddenConstructor) {
+      const headerMask = maskKotlin(header)
+      const open = header.indexOf('(', hiddenConstructor.index)
+      let close = open + 1,
+        depth = 1
+      for (; close < headerMask.length && depth; close++) {
+        if (headerMask[close] === '(') depth++
+        if (headerMask[close] === ')') depth--
+      }
+      const params = header.slice(open + 1, close - 1)
+      const maskedParams = maskKotlin(params)
+      let from = 0,
+        nested = 0,
+        generic = 0
+      for (let i = 0; i <= params.length; i++) {
+        const c = maskedParams[i]
+        if (c === '(' || c === '[') nested++
+        if (c === ')' || c === ']') nested--
+        if (c === '<') generic++
+        if (c === '>' && maskedParams[i - 1] !== '-' && generic > 0) generic--
+        if (i === params.length || (c === ',' && nested === 0 && generic === 0)) {
+          const param = params.slice(from, i).trim()
+          const property = /^(?:(?:public|override)\s+)*(val|var)\s+(\w+)\s*:/.exec(param)
+          if (property)
+            constructorProperties.push({ name: property[2], kind: property[1], signature: param })
+          from = i + 1
+        }
+      }
+      // Constructor annotations belong to the hidden constructor, not the type.
+      signature =
+        header
+          .slice(0, hiddenConstructor.index)
+          .replace(/(?:\s+@[\w.]+(?:\([^\n]*?\))?)+\s*$/, '')
+          .trim() + header.slice(close)
+    }
     // Inferred return/property types need their expression for clarity. Keep
     // only the first expression line, and explicitly mark multiline bodies.
     if (mask[end] === '=') {
@@ -107,9 +147,18 @@ export function declarations(source) {
       owner,
       kind,
       signature,
-      documentation: kdoc,
+      documentation: hiddenConstructor
+        ? `${kdoc}\nConstruction réservée au SDK : utilisez la fonction de création ou le contexte fourni.`.trim()
+        : kdoc,
       line: source.slice(0, start).split('\n').length,
     })
+    for (const property of constructorProperties)
+      records.push({
+        ...property,
+        owner: [owner, name].filter(Boolean).join('.'),
+        documentation: '',
+        line: source.slice(0, start).split('\n').length,
+      })
   }
   return records
 }
