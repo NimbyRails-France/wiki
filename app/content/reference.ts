@@ -13,6 +13,7 @@ const descriptions: Record<string, string> = {
     'Lire le réseau, préparer une pose, publier des boutons et écrire dans le journal depuis un outil.',
   SignalTypes: 'Valider les identifiants, catalogues et cases des modèles de signaux.',
   AutomaticDriving: 'Construire des consignes génériques avec les vitesses choisies par votre mod.',
+  Translations: 'Textes d’interface traduits depuis le JSON du mod, avec paramètres et repli.',
   Files: 'Lire un fichier UTF-8 borné depuis Kotlin/Native.',
   NimbyClient: 'Connexion, captures, lectures ciblées et commandes du client Kotlin/JVM.',
   Observation: 'Trains, voies, signaux, services, horloge et collections observées.',
@@ -48,6 +49,14 @@ const extra: Record<string, Section[]> = {
             [
               'ToolButton',
               'Identifiant, libellé, état activé ; au maximum 12 boutons par panneau.',
+            ],
+            [
+              'ToolNumberInput',
+              'Champ entier saisissable au clavier : id, label, value, minimum, maximum, enabled. Sélection, effacement et collage sont possibles. Un texte vide, incomplet ou hors limites reste un brouillon local et bloque les commandes ; seul un entier valide est transmis au mod. Quatre champs maximum, avec des identifiants distincts de ceux des boutons.',
+            ],
+            [
+              'SignalActionRequest.value',
+              'Nouvelle valeur entière pour une édition de champ (action contient son id) ; null pour un bouton. Une édition bloque les boutons jusqu’à la republication du panneau.',
             ],
             [
               'showPanel',

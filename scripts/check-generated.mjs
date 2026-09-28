@@ -28,7 +28,11 @@ const documents = new Map(
 let links = 0
 for (const [file, html] of documents) {
   if (file === resolve(root, '200.html') || file === resolve(root, '404.html')) continue
-  assert.match(html, /<html[^>]+lang="fr"/, file)
+  const english =
+    file.startsWith(resolve(root, 'en') + '/') || file.startsWith(resolve(root, 'en') + '\\')
+  assert.match(html, new RegExp('<html[^>]+lang="' + (english ? 'en' : 'fr') + '"'), file)
+  assert.match(html, /hreflang="en"/, file)
+  assert.match(html, /hreflang="fr"/, file)
   assert.match(html, /<h1\b/, file)
   for (const [, href] of html.matchAll(/<a\b[^>]*\bhref="([^" ]+)"/g)) {
     if (

@@ -2,6 +2,7 @@
 import { highlight } from '~/utils/highlight'
 const props = defineProps<{ code: string; title?: string; language?: string }>()
 const highlighted = computed(() => highlight(props.code, props.language))
+const { t } = useWikiLocale()
 const message = ref('Copier')
 let timer: ReturnType<typeof setTimeout> | undefined
 async function copy() {
@@ -22,9 +23,12 @@ onUnmounted(() => clearTimeout(timer))
   <div class="code-block">
     <div class="code-label">
       <span>{{ title || language || 'Kotlin' }}</span
-      ><button type="button" @click="copy">{{ message }}</button>
+      ><button type="button" @click="copy">{{ t(message) }}</button>
     </div>
-    <pre tabindex="0" :aria-label="title || 'Exemple de code'"><code v-html="highlighted" /></pre>
-    <span class="sr-only" role="status">{{ message === 'Copier' ? '' : message }}</span>
+    <pre
+      tabindex="0"
+      :aria-label="title || t('Exemple de code')"
+    ><code v-html="highlighted" /></pre>
+    <span class="sr-only" role="status">{{ message === 'Copier' ? '' : t(message) }}</span>
   </div>
 </template>

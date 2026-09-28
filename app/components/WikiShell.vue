@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { articles, groups } from '~/content'
+const { articles, groups, t, path, locale, alternate } = useWikiLocale()
+useWikiHead()
 const query = ref('')
 const menuOpen = ref(false)
 const search = ref<HTMLInputElement>()
@@ -48,14 +49,14 @@ const normalize = (value: string) =>
 const results = computed(() => {
   const terms = normalize(query.value).trim().split(/\s+/).filter(Boolean)
   return terms.length
-    ? articles.filter((a) => terms.every((t) => normalize(JSON.stringify(a)).includes(t)))
+    ? articles.value.filter((a) => terms.every((t) => normalize(JSON.stringify(a)).includes(t)))
     : []
 })
 </script>
 <template>
-  <a class="skip-link" href="#main">Aller au contenu</a>
+  <a class="skip-link" href="#main">{{ t('Aller au contenu') }}</a>
   <header class="mobile-header">
-    <NuxtLink class="brand" to="/"
+    <NuxtLink class="brand" :to="path('/')"
       ><img src="/favicon.svg" alt="" width="28" height="28" />NRF <strong>Guide</strong></NuxtLink
     >
     <button
@@ -65,23 +66,29 @@ const results = computed(() => {
       aria-controls="wiki-navigation"
       @click="menuOpen = !menuOpen"
     >
-      {{ menuOpen ? 'Fermer' : 'Menu' }}
+      {{ t(menuOpen ? 'Fermer' : 'Menu') }}
     </button>
   </header>
   <button
     v-if="menuOpen"
     class="menu-backdrop"
-    aria-label="Fermer la navigation"
+    :aria-label="t('Fermer la navigation')"
     @click="closeMenu"
   />
   <div class="wiki-layout">
     <aside id="wiki-navigation" class="sidebar" :class="{ open: menuOpen }">
-      <NuxtLink class="brand sidebar-brand" to="/" aria-label="NimbyRails France — accueil du wiki">
+      <NuxtLink
+        class="brand sidebar-brand"
+        :to="path('/')"
+        :aria-label="t('NimbyRails France — accueil du wiki')"
+      >
         <img src="/favicon.svg" alt="" width="34" height="34" />
-        <span>NimbyRails <strong>France</strong><small>LE GUIDE DES CRÉATEURS</small></span>
+        <span
+          >NimbyRails <strong>France</strong><small>{{ t('LE GUIDE DES CRÉATEURS') }}</small></span
+        >
       </NuxtLink>
       <form class="search-form" role="search" @submit.prevent>
-        <label for="wiki-search" class="sr-only">Rechercher dans le wiki</label>
+        <label for="wiki-search" class="sr-only">{{ t('Rechercher dans le wiki') }}</label>
         <div class="search-input">
           <svg
             viewBox="0 0 24 24"
@@ -100,55 +107,68 @@ const results = computed(() => {
             ref="search"
             v-model="query"
             type="search"
-            placeholder="Rechercher…"
+            :placeholder="t('Rechercher…')"
             autocomplete="off"
           />
           <kbd aria-hidden="true">Ctrl K</kbd>
         </div>
       </form>
-      <NuxtLink class="edition" to="/commencer/bienvenue"
+      <NuxtLink class="edition" :to="path('/commencer/bienvenue')"
         ><span class="book-icon" aria-hidden="true">▤</span
-        ><span>Documentation Kotlin<small>SDK 0.8 · Windows</small></span
+        ><span>{{ t('Documentation Kotlin') }}<small>SDK 0.8 · Windows</small></span
         ><span aria-hidden="true">⌄</span></NuxtLink
       >
       <div class="sidebar-scroll">
-        <nav v-if="query.trim()" aria-label="Résultats de recherche" class="search-results">
-          <p role="status">{{ results.length }} résultat{{ results.length > 1 ? 's' : '' }}</p>
-          <NuxtLink v-for="article in results" :key="article.slug" :to="'/' + article.slug"
+        <nav v-if="query.trim()" :aria-label="t('Résultats de recherche')" class="search-results">
+          <p role="status">
+            {{ results.length }} {{ t('résultat') }}{{ results.length !== 1 ? 's' : '' }}
+          </p>
+          <NuxtLink v-for="article in results" :key="article.slug" :to="path('/' + article.slug)"
             ><small>{{ article.group }}</small
             >{{ article.title }}</NuxtLink
           >
-          <p v-if="!results.length">Essayez « signal », « horloge » ou « TrackMetric ».</p>
+          <p v-if="!results.length">
+            {{ t('Essayez « signal », « horloge » ou « TrackMetric ».') }}
+          </p>
         </nav>
-        <nav v-else aria-label="Documentation">
-          <NuxtLink class="nav-home" to="/"
-            ><span aria-hidden="true">⌂</span> Vue d’ensemble</NuxtLink
+        <nav v-else :aria-label="t('Documentation')">
+          <NuxtLink class="nav-home" :to="path('/')"
+            ><span aria-hidden="true">⌂</span> {{ t('Vue d’ensemble') }}</NuxtLink
           >
           <section v-for="group in groups" :key="group" class="nav-group">
             <h2>{{ group }}</h2>
             <NuxtLink
               v-for="article in articles.filter((a) => a.group === group)"
               :key="article.slug"
-              :to="'/' + article.slug"
+              :to="path('/' + article.slug)"
             >
               {{ article.title
               }}<span
                 v-if="article.status === 'experimental'"
                 class="experimental-dot"
-                title="Expérimental"
-                aria-label="Expérimental"
+                :title="t('Expérimental')"
+                :aria-label="t('Expérimental')"
               />
             </NuxtLink>
           </section>
         </nav>
       </div>
       <div class="sidebar-footer">
+        <NuxtLink
+          :to="alternate"
+          class="language-switch"
+          :aria-label="t('Langue')"
+          :lang="locale === 'en' ? 'fr' : 'en'"
+          :hreflang="locale === 'en' ? 'fr' : 'en'"
+        >
+          {{ locale === 'en' ? 'Français' : 'English' }}
+        </NuxtLink>
         <a href="https://github.com/NimbyRails-France/wiki" class="github-link"
           >GitHub <span aria-hidden="true">↗</span></a
         >
-        <div class="theme-switch" role="group" aria-label="Apparence">
+        <div class="theme-switch" role="group" :aria-label="t('Apparence')">
           <button
-            aria-label="Thème clair"
+            :aria-label="t('Thème clair')"
             :aria-pressed="theme === 'light'"
             @click="setTheme('light')"
           >
@@ -168,7 +188,7 @@ const results = computed(() => {
             </svg>
           </button>
           <button
-            aria-label="Thème sombre"
+            :aria-label="t('Thème sombre')"
             :aria-pressed="theme === 'dark'"
             @click="setTheme('dark')"
           >
@@ -190,7 +210,9 @@ const results = computed(() => {
     <div class="main-column">
       <main id="main" tabindex="-1"><slot /></main>
       <footer class="site-footer">
-        <span>Le wiki officiel des créateurs de mods.</span
+        <span>{{
+          t('Le wiki des créateurs de mods avec le SDK developer par NimbyRails France.')
+        }}</span
         ><a href="https://nimbyrails-france.fr/">NimbyRails France ↗</a>
       </footer>
     </div>

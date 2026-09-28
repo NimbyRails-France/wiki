@@ -92,21 +92,21 @@ export const guides: Article[] = [
           list(
             'Installez IntelliJ IDEA et un JDK 21. Dans IntelliJ, choisissez ce JDK pour Gradle.',
             'Dans le Hub, installez le SDK et le loader pour le jeu. Choisissez le canal correspondant à votre version de mod.',
-            'Téléchargez séparément le kit Kotlin de développement et extrayez-le dans un dossier durable, par exemple C:/NRF/kotlin-sdk.',
+            'Dans les réglages développeur du Hub, choisissez Télécharger un kit Kotlin, puis Télécharger et utiliser. Le kit de compilation est distinct du SDK installé dans le jeu.',
           ),
           links(
             { label: 'Télécharger le Hub', to: 'https://releases.nimbyrails-france.fr/' },
             {
-              label: 'Télécharger le kit Kotlin 0.8.0-alpha.1',
-              to: 'https://releases.nimbyrails-france.fr/releases/sdk/v0.8.0-alpha.1/NimbyRailsFranceSDK-kotlin-0.8.0-alpha.1-windows-x64.zip',
+              label: 'Versions distribuées',
+              to: 'https://releases.nimbyrails-france.fr/',
             },
             { label: 'Sources et versions du SDK', to: 'https://github.com/NimbyRails-France/sdk' },
           ),
           note(
-            'Le SDK installé dans le jeu et le kit de développement ont deux rôles différents. Le kit contient sdk.json, klib, bridge et gradle-repository. Le Hub permet de sélectionner son chemin dans les réglages développeur ; il ne télécharge pas ce kit à la place du SDK du jeu.',
+            'Le kit contient sdk.json, les bibliothèques Kotlin, le pont natif et gradle-repository. Recopiez son chemin dans nrfSdkDir. Pour utiliser une modification locale du SDK, ajoutez son projet au profil développeur du Hub, compilez le SDK, puis recompilez les mods avec le kit sélectionné par cette construction. Activez ensuite le profil, jeu fermé.',
           ),
           note(
-            'La nouvelle API signalModel présentée ici suit la branche de développement. Le kit alpha.1 publié avant cette refonte ne contient pas encore cette API. Utilisez un kit construit depuis cette branche pour ces pages, ou attendez sa prochaine distribution. Le lien reste celui du dernier kit publié ; ce n’est pas une promesse de compatibilité avec les nouveautés.',
+            'Cette documentation suit les sources 0.8.0-alpha.2. Deux constructions portant ce même numéro peuvent contenir des API différentes. Les champs numériques, le nouveau signalModel et les aperçus de carte exigent un kit et un SDK du jeu issus de la même construction récente. Le catalogue du Hub indique ce qui est effectivement distribué.',
             'Version de ce guide',
           ),
           text(
@@ -140,15 +140,17 @@ export const guides: Article[] = [
         gradlePluginPortal()
         mavenCentral()
     }
+    val metadata = groovy.json.JsonSlurper()
+        .parseText(file(sdk).resolve("sdk.json").readText().removePrefix("\\uFEFF")) as Map<*, *>
+    plugins {
+        id("fr.nimbyrails.mod") version (metadata["gradlePluginVersion"] as String)
+    }
 }
 dependencyResolutionManagement { repositories { mavenCentral() } }
 rootProject.name = "mon-premier-mod"`,
             'settings.gradle.kts',
           ),
-          code(
-            'plugins {\n    id("fr.nimbyrails.mod") version "0.8.0-alpha.1"\n}',
-            'build.gradle.kts',
-          ),
+          code('plugins { id("fr.nimbyrails.mod") }', 'build.gradle.kts'),
           text(
             'La version du plugin doit correspondre au champ gradlePluginVersion de sdk.json dans votre kit. Votre projet garde ses propres sources et son propre wrapper Gradle. Il n’a pas besoin d’un dépôt d’exemple.',
           ),
@@ -169,7 +171,7 @@ rootProject.name = "mon-premier-mod"`,
   "module": "MonPremierMod",
   "version": "0.1.0",
   "language": "kotlin-native",
-  "sdkMin": "0.8.0-alpha.1",
+  "sdkMin": "0.8.0-alpha.2",
   "sdkMaxExclusive": "0.9.0",
   "gameSha256": ["fff49ac21720abfc824c2b4f68b862727630eb0db71cfe1f9ea8f685d0db10ae"]
 }`,
@@ -400,10 +402,10 @@ textures=mon_premier_signal`,
         title: 'Observer un train en approche',
         blocks: [
           code(
-            'signalModel("monmod.approche", "Signal à l’approche", "textures_approche",\n    fallback = Indication(Aspect.Closed, Reason.Unknown)) {\n    observeApproach = true\n    rules {\n        if (fresh && routeKnown && block == Occupancy.Clear && approachingTrain != null\n            && !observation.forcedStop && !observation.lampFailed)\n            Indication(Aspect.Open, Reason.Clear)\n        else Indication(Aspect.Closed, Reason.Unknown)\n    }\n    images { if (it.aspect == Aspect.Open) "open.svg" else "closed.svg" }\n}',
+            'signalModel("monmod.approche", "Signal à l’approche", "textures_approche",\n    fallback = Indication(Aspect.Closed, Reason.Unknown)) {\n    observeApproach = true\n    approachBlocks = 2\n    rules {\n        if (fresh && routeKnown && block == Occupancy.Clear && approachingTrain != null\n            && !observation.forcedStop && !observation.lampFailed)\n            Indication(Aspect.Open, Reason.Clear)\n        else Indication(Aspect.Closed, Reason.Unknown)\n    }\n    images { if (it.aspect == Aspect.Open) "open.svg" else "closed.svg" }\n}',
           ),
           text(
-            'approachingTrain contient un identifiant de train lorsque l’observation trouve son premier signal orienté dans le sens de marche. C’est une observation géométrique en amont ; elle ne prouve ni réservation ni autorisation de mouvement.',
+            'Activez observeApproach et choisissez approachBlocks (1 par défaut, de 1 à 16). Avec 2, approachingTrain recherche une tête de train dans les deux cantons en amont. Le parcours suit les signaux orientés dans le sens de marche et s’arrête devant une branche ambiguë. Après franchissement par la tête, ce train ne compte plus comme une approche de ce signal. Cette observation ne prouve ni réservation ni autorisation de mouvement ; votre règle décide de l’ouverture et du traitement d’un aval inconnu.',
           ),
           links({ label: 'Tous les types de contexte', to: '/reference/signalmodel' }),
         ],
@@ -429,7 +431,7 @@ textures=mon_premier_signal`,
             'Le SDK affiche le bouton seulement si mon-inspecteur déclare inspect.v1 et dispose d’une observation fraîche de la même partie. Son absence masque le bouton. Elle ne désactive aucune règle du signal et n’ajoute aucune dépendance obligatoire au paquet.',
           ),
           note(
-            'Cette API appartient au SDK de développement. Le kit alpha.1 actuellement téléchargeable précède ces ajouts. Le nouveau panneau doit encore être qualifié en jeu.',
+            'Cette API appartient au SDK de développement. Utilisez le kit du même build que le SDK installé : le numéro de version seul ne garantit pas la présence des derniers ajouts. Les interactions natives restent à qualifier en jeu.',
           ),
         ],
       },
@@ -462,8 +464,8 @@ textures=mon_premier_signal`,
                 'Obtenir une nouvelle copie du réseau et de ses métriques disponibles.',
               ],
               [
-                'showPanel(demande, message, boutons)',
-                'Remplacer votre action par un message et au maximum 12 boutons.',
+                'showPanel(demande, message, boutons, inputs = champs)',
+                'Remplacer votre action par un message, au maximum 12 boutons et 4 champs numériques.',
               ],
               ['log(message)', 'Écrire un événement dans le journal des mods.'],
               [
@@ -476,8 +478,20 @@ textures=mon_premier_signal`,
           text(
             'Conservez les valeurs copiées, pas le ToolContext du callback. Les propriétés worldId et generation servent à invalider vos mémoires lorsque la partie change. Un clic ne donne pas à lui seul l’autorisation de construire.',
           ),
+          code(
+            'var distance = 500 // État conservé par votre outil, hors du callback.\n\n// Dans votre service :\nif (demande.action == "distance") {\n    demande.value?.let { distance = it }\n    // Invalider ici tout aperçu calculé avec l’ancienne distance.\n}\nshowPanel(demande, "Distance choisie : $distance m",\n    buttons = listOf(ToolButton("apercu", "Calculer un aperçu")),\n    inputs = listOf(ToolNumberInput("distance", "Distance (m)", distance, 10, 5000))\n)',
+            'Champ numérique',
+          ),
           text(
             'Pour construire : préparez un ticket, capturez le réseau après la préparation, calculez les positions et demandez une confirmation. Une réponse Pending se suit avec pollConstruction sur le même ticket. Ne renvoyez pas createSignals après une réponse incertaine. La pose utilise le pont Windows expérimental.',
+          ),
+          text('Le SDK conserve le panneau et les saisies pendant une interruption des observations. Les commandes sont alors désactivées ; elles restent soumises à une capture fraîche et à la validation du ticket de construction. Un outil peut republier le même panneau dans onTick : une publication identique ne supprime pas les clics en attente. La fermeture du menu est un état à conserver jusqu’à une action explicite du joueur.'),
+          text(
+            'Pour montrer les positions avant confirmation, appelez showSignalPreview avec la demande et votre liste de SignalPosition. Le SDK utilise le modèle du signal source sans construire de signal. Renouvelez la publication dans onTick avec son nouveau contexte : elle expire après deux secondes. clearSignalPreview retire votre aperçu. Un seul aperçu est actif à la fois ; les couches visibles et le cadrage du jeu restent appliqués.',
+          ),
+          code(
+            '// Dans le callback du service, positions a été calculé par votre outil.\nshowSignalPreview(demande, positions)\n\n// Avant de construire, de changer de source ou de masquer l’aperçu :\nclearSignalPreview()',
+            'Aperçu temporaire sur la carte — Windows',
           ),
           links(
             { label: 'Types des services', to: '/reference/modservices' },
@@ -548,7 +562,7 @@ textures=mon_premier_signal`,
             'images { indication ->\n    when (indication.aspect) {\n        Aspect.Closed -> "closed.svg"\n        Aspect.Open -> "open.svg"\n    }\n}',
           ),
           text(
-            'Ces chemins doivent exister dans le catalogue déclaré pour le type. Le SDK applique la texture au catalogue du signal observé. Les codes d’indication restent communs au mod : utilisez des valeurs distinctes si deux modèles doivent sélectionner des images différentes.',
+            'Ces chemins doivent exister dans le catalogue déclaré pour ce modèle. Avec signalModel, chaque modèle possède ses propres enums et son propre callback images : deux modèles peuvent avoir un ordinal identique sans partager leurs images. Ne comparez pas directement les codes numériques de modèles différents.',
           ),
         ],
       },
@@ -865,17 +879,20 @@ textures=mon_premier_signal`,
     group: 'Lire et agir',
     status: 'experimental',
     description:
-      'Le protocole de construction expérimentale utilisé pour préparer Signal Placement.',
+      'Prévisualiser sans construire, confirmer une série, suivre son ticket et annuler quand le jeu le permet.',
     sections: [
       {
         id: 'cycle',
         title: 'Préparer, créer, observer',
         blocks: [
           code(
-            'val ready = client.prepareConstruction(sourceSignal)\nif (ready.state == fr.nimby.sdk.ConstructionState.READY) {\n    val result = client.createSignals(ready.token, sourceSignal, positions)\n    println(result.state)\n    // Si PENDING, consulter pollConstruction(result.token).\n    // Ne jamais répéter createSignals pour attendre la réponse.\n}',
+            'val confirmed = positions.toList()\nval ready = client.prepareConstruction(sourceSignal)\nif (ready.state == fr.nimby.sdk.ConstructionState.READY) {\n    val fresh = client.capture()\n    val recalculated = planPositions(fresh, sourceSignal)\n    if (recalculated == confirmed) {\n        val result = client.createSignals(ready.token, sourceSignal, confirmed)\n        println(result.state)\n        // Si PENDING, consulter pollConstruction(result.token).\n        // Ne jamais répéter createSignals pour attendre la réponse.\n    } else {\n        println("Preview changed: request confirmation again.")\n    }\n}',
           ),
           text(
-            'Le pont expérimental doit être construit séparément. Une série contient au maximum 64 positions distinctes sur des voies valides, fractions strictement entre 0 et 1 et sens -1 ou 1. Les tickets appartiennent à une session de jeu et à sa révision de construction.',
+            'Dans cet extrait, positions est la liste confirmée par l’utilisateur et planPositions est votre fonction de calcul, pas une API du SDK. Elle doit vérifier la session, les longueurs, les raccords et les exclusions sur la nouvelle capture. Conservez ready.token même si createSignals lève une exception.',
+          ),
+          text(
+            'Le paquet Windows du SDK inclut le pont expérimental correspondant. Une série contient au maximum 64 positions distinctes sur des voies valides, fractions strictement entre 0 et 1 et sens -1 ou 1. Les tickets appartiennent à une session de jeu et à sa révision de construction. Après prepareConstruction, relisez le réseau et comparez le nouveau calcul à l’aperçu confirmé avant createSignals.',
           ),
         ],
       },
@@ -887,10 +904,14 @@ textures=mon_premier_signal`,
             'undoConstruction(token) refuse si une autre commande a remplacé la série au sommet de l’historique natif. Vérifiez canUndo et l’état retourné. READY, APPLIED, UNDONE, REJECTED, PARTIAL et PENDING sont distincts.',
           ),
           note(
-            'La branche de développement comprend maintenant les actions optionnelles et le mod Signal Placement. Le nouveau panneau natif est testé hors jeu ; son fonctionnement dans une partie réelle reste à qualifier. Cette extension n’est pas incluse dans le kit alpha.1 déjà publié.',
+            'Le panneau accepte une saisie entière au clavier, un résumé et des aperçus temporaires sur la carte. Les tests automatisés contrôlent le transport et le cycle de vie ; ils ne valident pas visuellement chaque zoom, couche ou géométrie du jeu.',
           ),
           links({ label: 'Résultats et états de construction', to: '/reference/construction' }),
           links({ label: 'Boutons et outils optionnels', to: '/mods/outils-optionnels' }),
+          links({
+            label: 'Projet Signal Placement',
+            to: 'https://github.com/NimbyRails-France/signal-placement',
+          }),
         ],
       },
     ],

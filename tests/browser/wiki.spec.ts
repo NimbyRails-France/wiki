@@ -34,24 +34,28 @@ test('tutorial supplies every project file without cloning an example', async ({
       'assets/open.svg',
     ],
   }
-  for (const [route, names] of Object.entries(files)) {
-    await page.goto(route)
-    for (const name of names) {
-      const content = await page
-        .locator('pre')
-        .filter({ has: page.locator('code') })
-        .evaluateAll(
-          (blocks, title) =>
-            blocks.find((b) => b.getAttribute('aria-label') === title)?.textContent,
+  for (const locale of ['fr', 'en'])
+    for (const [route, names] of Object.entries(files)) {
+      await page.goto((locale === 'en' ? '/en' : '') + route)
+      for (const name of names) {
+        const content = await page
+          .locator('pre')
+          .filter({ has: page.locator('code') })
+          .evaluateAll(
+            (blocks, title) =>
+              blocks.find((b) => b.getAttribute('aria-label') === title)?.textContent,
+            name,
+          )
+        expect(content, name).toBeTruthy()
+        expect(content).not.toContain('\\n')
+        const path = resolve(
+          locale === 'en' ? '.validation/tutorial-project-en' : '.validation/tutorial-project',
           name,
         )
-      expect(content, name).toBeTruthy()
-      expect(content).not.toContain('\\n')
-      const path = resolve('.validation/tutorial-project', name)
-      await mkdir(dirname(path), { recursive: true })
-      await writeFile(path, content!, 'utf8')
+        await mkdir(dirname(path), { recursive: true })
+        await writeFile(path, content!, 'utf8')
+      }
     }
-  }
 })
 
 test('navigation, full text search, code copy and unknown route', async ({ page, context }) => {
@@ -103,4 +107,46 @@ test('mobile menu, article links and no horizontal overflow', async ({ page }) =
   )
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.screenshot({ path: 'test-results/wiki-mobile.png', fullPage: true })
+})
+
+test('English pages, search and language switch preserve the article and section', async ({
+  page,
+}) => {
+  const failures: string[] = []
+  page.on('pageerror', (error) => failures.push(error.message))
+  page.on('console', (message) => {
+    if (message.type() === 'error') failures.push(message.text())
+  })
+  await page.goto('/en')
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Your ideas.')
+  await page.getByRole('searchbox').fill('preview')
+  await page
+    .getByRole('navigation', { name: 'Search results' })
+    .getByRole('link', { name: /ToolContext/ })
+    .click()
+  await expect(page).toHaveURL(/\/en\/reference\/toolcontext$/)
+  const section = page.locator('.article-section').first()
+  const id = await section.getAttribute('id')
+  await section.locator('h2 a').click()
+  await expect(page.getByRole('link', { name: 'Language', exact: true })).toHaveAttribute(
+    'href',
+    '/reference/toolcontext#' + id,
+  )
+  await page.getByRole('link', { name: 'Language', exact: true }).click()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'fr')
+  await expect(page).toHaveURL(new RegExp('/reference/toolcontext#' + id + '$'))
+  await page.getByRole('link', { name: 'Langue', exact: true }).click()
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en')
+  await expect(page.getByRole('button', { name: 'Copy', exact: true }).first()).toBeVisible()
+  await page.screenshot({ path: 'test-results/wiki-english.png', fullPage: true })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/en/commencer/installation')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+  await page.getByRole('button', { name: 'Menu', exact: true }).click()
+  await expect(page.getByRole('link', { name: 'Language', exact: true })).toBeVisible()
+  expect(failures).toEqual([])
+  const unknown = await page.goto('/en/unknown-page')
+  expect(unknown?.status()).toBe(404)
+  await expect(page.getByRole('heading', { name: 'This track leads nowhere.' })).toBeVisible()
 })

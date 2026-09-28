@@ -11,6 +11,6 @@ export default defineNuxtConfig({
       link: [{ rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],
     },
   },
-  nitro: { prerender: { crawlLinks: true, failOnError: true, routes: ['/'] } },
+  nitro: { prerender: { crawlLinks: true, failOnError: true, routes: ['/', '/en'] } },
   typescript: { strict: true },
 })

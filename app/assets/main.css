@@ -247,6 +247,13 @@ kbd {
   padding: 14px 5px 0;
   margin-top: 10px;
 }
+.language-switch {
+  font-size: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+.language-switch:hover { background: var(--soft); }
 .github-link {
   font-size: 12px;
   color: var(--muted);

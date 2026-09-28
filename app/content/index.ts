@@ -1,5 +1,7 @@
 import { guides } from './guides'
 import { referenceArticles, referenceIndex } from './reference'
+import { details } from './details'
+import { translationsGuide } from './translations'
 export const groups = [
   'Commencer',
   'Créer un mod',
@@ -7,9 +9,14 @@ export const groups = [
   'Référence',
   'Maintenance',
 ] as const
+const expandedGuides = guides.map((article) => ({
+  ...article,
+  sections: [...article.sections, ...(details[article.slug] || [])],
+}))
 export const articles = [
-  ...guides.filter((a) => a.group !== 'Maintenance'),
+  ...expandedGuides.filter((a) => a.group !== 'Maintenance'),
+  translationsGuide,
   referenceIndex,
   ...referenceArticles,
-  ...guides.filter((a) => a.group === 'Maintenance'),
+  ...expandedGuides.filter((a) => a.group === 'Maintenance'),
 ]

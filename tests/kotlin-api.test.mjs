@@ -35,6 +35,18 @@ test('typed DSL function name survives nested generic bounds', () => {
   assert.match(symbol.signature, /fallback: Pair<A, R>/)
 })
 
+test('enum values survive semicolons inside comments, strings and entry bodies', () => {
+  const [flag] = declarations(`enum class Flag(val bit: Int, val label: String) {
+    Clear(1, ";"),
+    /** Permission at the remembered speed; keep independent restrictions. */
+    ApproachPassable(128, "pass") { fun local() { println(1); println(2) } };
+    fun member() = bit
+  }`)
+  assert.match(flag.signature, /ApproachPassable\(128/)
+  assert.match(flag.signature, /keep independent restrictions\. \*\//)
+  assert(!flag.signature.includes('fun member'))
+})
+
 test('internal constructors hide transport parameters but preserve public properties', () => {
   const symbols = declarations(`class Context @PublishedApi internal constructor(
     val world: String, override val generation: Long,
@@ -58,6 +70,10 @@ test('snapshot covers the two SDK surfaces without native internals', async () =
   assert(snapshot.files.length >= 12)
   assert(snapshot.files.every((f) => f.symbols.length && f.sha256.length === 64))
   const names = snapshot.files.flatMap((f) => f.symbols.map((s) => s.name))
+  assert.match(
+    snapshot.files.flatMap((f) => f.symbols).find((s) => s.name === 'DrivingFlag').signature,
+    /ApproachPassable\(128\)/,
+  )
   for (const required of [
     'signalMod',
     'Indication',

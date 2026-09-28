@@ -18,6 +18,10 @@ Ouvrir l'adresse locale affichée. Aucun service distant n'est nécessaire.
 ## Contenu
 
 - `app/content/guides.ts` : guides en français, blocs de texte, code et tableaux.
+- `app/content/details.ts` : contrats pratiques et exemples supplémentaires.
+- `app/content/en.json`, `ui-en.json`, `code-en.json` : traduction anglaise des
+  articles, de l'interface et des explications dans les exemples. Une traduction
+  absente bloque les tests et la génération ; aucun repli silencieux en français.
 - `app/content/snippets/FirstMod.kt` : contenu Kotlin du tutoriel, compilé pour vérifier sa cohérence. Aucun projet d'exemple à installer.
 - `app/content/generated/api.json` : instantané des déclarations publiques Kotlin.
 - `app/content/reference.ts` : présentation et explications de la référence.
@@ -25,6 +29,11 @@ Ouvrir l'adresse locale affichée. Aucun service distant n'est nécessaire.
 
 Les guides sont structurés en TypeScript, sans moteur Markdown ni base de données.
 La recherche reste dans le navigateur, sans envoyer les requêtes à un service tiers.
+Le français conserve les adresses existantes ; l'anglais utilise `/en` et les
+mêmes chemins et ancres. Le sélecteur conserve la page et la section consultée.
+Après une modification du contenu français ou de la KDoc, mettre également à
+jour la clé correspondante dans `en.json`. Les identifiants Kotlin et les IDs
+de ressources des exemples restent identiques pour faciliter leur comparaison.
 Les sources Kotlin peuvent être synchronisées depuis un checkout voisin :
 
 ```sh
@@ -41,6 +50,7 @@ Le build du wiki reste autonome : il utilise l'instantané versionné.
 npm test
 npm run typecheck
 npm run generate
+npm run check:generated
 ```
 
 Vérifier aussi la navigation, la recherche et la copie dans un navigateur

@@ -135,10 +135,20 @@ export function declarations(source) {
       signature += ' ' + expression
     }
     if (modifiers.includes('enum') && body !== null) {
-      const enumBody = source
-        .slice(body + 1, pairs.get(body))
-        .split(';')[0]
-        .trim()
+      // Only a top-level Kotlin semicolon terminates enum entries. A semicolon
+      // inside KDoc (DrivingFlag.ApproachPassable), a string or an entry body
+      // must never truncate the public values shown in the reference.
+      let entriesEnd = pairs.get(body) ?? mask.length,
+        depth = 0
+      for (let i = body + 1; i < entriesEnd; i++) {
+        if ('({['.includes(mask[i])) depth++
+        else if (')}]'.includes(mask[i])) depth--
+        else if (mask[i] === ';' && depth === 0) {
+          entriesEnd = i
+          break
+        }
+      }
+      const enumBody = source.slice(body + 1, entriesEnd).trim()
       signature += ' {\n' + enumBody + '\n}'
     }
     const owner = enclosing.map((c) => c.name).join('.')
