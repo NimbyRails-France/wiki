@@ -12,6 +12,7 @@ val firstSignal = signalModel(
     textures = "mon_premier_signal",
     fallback = Indication(Aspect.Closed, Reason.Unknown)
 ) {
+    construction(states = listOf("closed.svg", "open.svg"))
     val active = checkbox("active", "Activer le signal", defaultValue = true)
 
     rules {
@@ -26,7 +27,7 @@ val firstSignal = signalModel(
         }
     }
 
-    // Les deux fichiers SVG sont déclarés dans assets/mod.txt.
+    // Les deux fichiers SVG sont déclarés une seule fois dans construction.
     images { indication ->
         when (indication.aspect) {
             Aspect.Closed -> "closed.svg"
@@ -42,6 +43,7 @@ val firstSignal = signalModel(
 }
 
 // Le mod est le paquet ; le modèle ci-dessus garde ses propres types et règles.
-fun createMod(): SignallingMod = signalMod("mon-premier-mod", "Mon premier mod") {
+fun createMod(): SignallingMod = signalMod(modInfo) {
+    metadata(author = "Votre nom", description = "Mon premier mod de signalisation.")
     signal(firstSignal)
 }

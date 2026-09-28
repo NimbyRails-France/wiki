@@ -2,6 +2,8 @@ import type { Article } from './schema'
 import { text, code, note, list, table, links } from './schema'
 import firstMod from './snippets/FirstMod.kt?raw'
 import signalModels from './snippets/SignalModels.kt?raw'
+import approachSignal from './snippets/ApproachSignal.kt?raw'
+import blinkSignal from './snippets/BlinkSignal.kt?raw'
 
 export const guides: Article[] = [
   {
@@ -47,6 +49,7 @@ export const guides: Article[] = [
           ),
           links(
             { label: 'Créer mon premier mod', to: '/commencer/premier-mod' },
+            { label: 'Trouver la bonne fonction', to: '/commencer/possibilites' },
             { label: 'Lire les données depuis une application', to: '/lire/connexion' },
           ),
         ],
@@ -106,7 +109,7 @@ export const guides: Article[] = [
             'Le kit contient sdk.json, les bibliothèques Kotlin, le pont natif et gradle-repository. Recopiez son chemin dans nrfSdkDir. Pour utiliser une modification locale du SDK, ajoutez son projet au profil développeur du Hub, compilez le SDK, puis recompilez les mods avec le kit sélectionné par cette construction. Activez ensuite le profil, jeu fermé.',
           ),
           note(
-            'Cette documentation suit les sources 0.8.0-alpha.2. Deux constructions portant ce même numéro peuvent contenir des API différentes. Les champs numériques, le nouveau signalModel et les aperçus de carte exigent un kit et un SDK du jeu issus de la même construction récente. Le catalogue du Hub indique ce qui est effectivement distribué.',
+            'Cette documentation suit le SDK 0.8.0-alpha.3. Les fenêtres d’outils, les métadonnées traduites et la génération de mod.txt exigent le kit et le SDK du jeu de cette version ou une version compatible plus récente. Le catalogue du Hub indique ce qui est effectivement distribué.',
             'Version de ce guide',
           ),
           text(
@@ -171,7 +174,7 @@ rootProject.name = "mon-premier-mod"`,
   "module": "MonPremierMod",
   "version": "0.1.0",
   "language": "kotlin-native",
-  "sdkMin": "0.8.0-alpha.2",
+  "sdkMin": "0.8.0-alpha.3",
   "sdkMaxExclusive": "0.9.0",
   "gameSha256": ["fff49ac21720abfc824c2b4f68b862727630eb0db71cfe1f9ea8f685d0db10ae"]
 }`,
@@ -182,7 +185,7 @@ rootProject.name = "mon-premier-mod"`,
             ['Fichier / dossier à créer', 'Rôle'],
             [
               ['src/main/kotlin/Entry.kt', 'Le point d’entrée createMod() et vos règles.'],
-              ['assets/mod.txt', 'Le catalogue de textures et le signal constructible.'],
+              ['construction(states)', 'Le catalogue de textures et le signal constructible, déclarés dans le modèle Kotlin.'],
               ['assets/closed.svg et assets/open.svg', 'Les images de vos indications.'],
               ['src/test/kotlin/', 'Vos tests de règles, sans partie ouverte.'],
             ],
@@ -218,27 +221,11 @@ rootProject.name = "mon-premier-mod"`,
         title: 'Créer le signal et ses images',
         blocks: [
           text(
-            'Ajoutez ce catalogue dans assets/mod.txt. La valeur mon_premier_signal correspond au troisième argument de signal dans Entry.kt. Chaque image mentionnée dans le catalogue doit exister dans assets.',
+            'Le modèle déclare construction(states = listOf("closed.svg", "open.svg")). Le SDK génère mod.txt pendant la compilation : ne créez plus ce fichier dans assets. Ajoutez seulement les deux images ci-dessous.',
           ),
           code(
-            `[ModMeta]
-schema=1
-name=Mon premier mod
-version=0.1.0
-author=Votre nom
-
-[SignalTextures]
-id=mon_premier_signal
-name_en=Mon premier signal
-state=closed.svg
-state=open.svg
-
-[SignalTemplate]
-name_en=Mon premier signal
-kind=path
-textures=mon_premier_signal`,
-            'assets/mod.txt',
-            'ini',
+            'construction(states = listOf("closed.svg", "open.svg"))',
+            'Dans le modèle Kotlin',
           ),
           code(
             '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="64" viewBox="0 0 32 64"><rect x="6" y="2" width="20" height="48" rx="10" fill="#161616"/><circle cx="16" cy="15" r="7" fill="#ef4444"/><path d="M16 50v14" stroke="#888" stroke-width="4"/></svg>',
@@ -251,8 +238,9 @@ textures=mon_premier_signal`,
             'xml',
           ),
           text(
-            'Vous pouvez dessiner vos propres SVG ; conservez leurs noms ou modifiez ensemble le catalogue et images.',
+            'Vous pouvez dessiner vos propres SVG ; conservez leurs noms ou modifiez ensemble construction et images. Le guide du paquet généré explique tous les champs et la conservation des indices.',
           ),
+          links({ label: 'Générer le paquet depuis Kotlin', to: '/mods/paquet-genere' }),
         ],
       },
       {
@@ -330,7 +318,7 @@ textures=mon_premier_signal`,
                 'Cases visibles, libellés et valeurs utilisées par les règles.',
               ],
               ['Règles', 'Choix de la décision à partir du contexte SDK et du voisin.'],
-              ['Textures', 'Choix du SVG et phase de clignotement au temps simulé.'],
+              ['Textures', 'Choix des SVG et de leur cadence ; le SDK anime les images.'],
               ['Conduite et vitesses', 'Consigne générique et valeurs choisies par votre modèle.'],
               ['Diagnostics', 'Décisions considérées comme des anomalies.'],
             ],
@@ -401,11 +389,25 @@ textures=mon_premier_signal`,
         id: 'approche',
         title: 'Observer un train en approche',
         blocks: [
+          code(approachSignal),
+          text(
+            'Ce fichier définit un modèle et son catalogue avec construction. Pour en faire un mod chargeable, ajoutez le point d’entrée ci-dessous dans votre projet préparé avec le guide d’installation. Ajoutez open.svg et closed.svg dans assets, comme dans le premier mod.',
+          ),
           code(
-            'signalModel("monmod.approche", "Signal à l’approche", "textures_approche",\n    fallback = Indication(Aspect.Closed, Reason.Unknown)) {\n    observeApproach = true\n    approachBlocks = 2\n    rules {\n        if (fresh && routeKnown && block == Occupancy.Clear && approachingTrain != null\n            && !observation.forcedStop && !observation.lampFailed)\n            Indication(Aspect.Open, Reason.Clear)\n        else Indication(Aspect.Closed, Reason.Unknown)\n    }\n    images { if (it.aspect == Aspect.Open) "open.svg" else "closed.svg" }\n}',
+            'package nimby.mod\n\nimport nimby.*\nimport wiki.approach.approachSignal\n\nfun createMod() = signalMod(modInfo) {\n    metadata(author = "Your name", description = "Approach-controlled signal.")\n    signal(approachSignal)\n}',
+            'src/main/kotlin/Entry.kt',
           ),
           text(
-            'Activez observeApproach et choisissez approachBlocks (1 par défaut, de 1 à 16). Avec 2, approachingTrain recherche une tête de train dans les deux cantons en amont. Le parcours suit les signaux orientés dans le sens de marche et s’arrête devant une branche ambiguë. Après franchissement par la tête, ce train ne compte plus comme une approche de ce signal. Cette observation ne prouve ni réservation ni autorisation de mouvement ; votre règle décide de l’ouverture et du traitement d’un aval inconnu.',
+            'Déclarez observeApproach(blocks = 2) dans le modèle, puis utilisez trainApproaching dans rules. Le SDK recherche une tête orientée vers le signal dans les deux cantons en amont et valide son identifiant. Avec des données absentes, invalides ou non fraîches, trainApproaching vaut false. approachingTrain fournit aussi l’identifiant validé si vous en avez besoin, sinon null. Aucun décalage de bits n’est nécessaire.',
+          ),
+          text(
+            'La portée accepte de 1 à 16 cantons. Le parcours suit le sens de marche et s’arrête devant une branche ambiguë ; après le passage de la tête, ce train ne compte plus comme une approche. Cette observation ne prouve ni voie libre, ni réservation, ni permission de mouvement. Le mod décide du traitement d’un aval inconnu. Les propriétés observeApproach et approachBlocks restent disponibles pour les déclarations existantes.',
+          ),
+          text(
+            'Le SDK observe ensemble les types de votre mod et limite la lecture des voies à leurs cantons utiles, y compris la portée en amont déclarée par chaque modèle. Vous n’avez pas à créer une boucle de lecture ni à multiplier la portée quand le jeu accélère. L’arrêt, le franchissement et la marche à vue sont suivis pendant les pas de simulation natifs ; une observation périmée ne devient jamais une autorisation. Les captures restent des observations successives, pas une image atomique de tout le jeu.',
+          ),
+          note(
+            'Ne confondez pas blocks, qui observe en amont, avec signalsAhead dans une consigne de conduite, qui désigne une cible en aval. Deux cantons peuvent être courts ou longs : ce réglage exprime un nombre de cantons, pas une distance ni une durée.',
           ),
           links({ label: 'Tous les types de contexte', to: '/reference/signalmodel' }),
         ],
@@ -440,7 +442,7 @@ textures=mon_premier_signal`,
         title: 'Créer votre propre fournisseur',
         blocks: [
           code(
-            'package nimby.mod\n\nimport nimby.*\n\nfun createMod() = toolMod("mon-inspecteur", "Mon inspecteur") {\n    service("inspect.v1") { demande ->\n        log("Signal choisi : ${demande.signalId}")\n        showPanel(demande, "Signal sélectionné", listOf(\n            ToolButton("actualiser", "Actualiser")\n        ))\n    }\n}',
+            'package nimby.mod\n\nimport nimby.*\n\nfun createMod() = toolMod(modInfo) {\n    metadata(author = "Your name", description = "Inspect a selected signal.")\n    service("inspect.v1") { demande ->\n        log("Signal choisi : ${demande.signalId}")\n        showPanel(demande, "Signal sélectionné", listOf(\n            ToolButton("actualiser", "Actualiser")\n        ))\n    }\n}',
             'src/main/kotlin/Entry.kt',
           ),
           text(
@@ -485,7 +487,9 @@ textures=mon_premier_signal`,
           text(
             'Pour construire : préparez un ticket, capturez le réseau après la préparation, calculez les positions et demandez une confirmation. Une réponse Pending se suit avec pollConstruction sur le même ticket. Ne renvoyez pas createSignals après une réponse incertaine. La pose utilise le pont Windows expérimental.',
           ),
-          text('Le SDK conserve le panneau et les saisies pendant une interruption des observations. Les commandes sont alors désactivées ; elles restent soumises à une capture fraîche et à la validation du ticket de construction. Un outil peut republier le même panneau dans onTick : une publication identique ne supprime pas les clics en attente. La fermeture du menu est un état à conserver jusqu’à une action explicite du joueur.'),
+          text(
+            'Le SDK conserve le panneau et les saisies pendant une interruption des observations. Les commandes sont alors désactivées ; elles restent soumises à une capture fraîche et à la validation du ticket de construction. Un outil peut republier le même panneau dans onTick : une publication identique ne supprime pas les clics en attente. La fermeture du menu est un état à conserver jusqu’à une action explicite du joueur.',
+          ),
           text(
             'Pour montrer les positions avant confirmation, appelez showSignalPreview avec la demande et votre liste de SignalPosition. Le SDK utilise le modèle du signal source sans construire de signal. Renouvelez la publication dans onTick avec son nouveau contexte : elle expire après deux secondes. clearSignalPreview retire votre aperçu. Un seul aperçu est actif à la fois ; les couches visibles et le cadrage du jeu restent appliqués.',
           ),
@@ -571,11 +575,25 @@ textures=mon_premier_signal`,
         title: 'Animer sur l’horloge du jeu',
         blocks: [
           code(
-            'animatedImages { indication, simulationMs, halfPeriodMs ->\n    when {\n        indication.aspect == Aspect.Closed -> "closed.svg"\n        simulationMs < 0 || halfPeriodMs <= 0 -> "off.svg"\n        (simulationMs / halfPeriodMs) % 2L == 0L -> "open.svg"\n        else -> "off.svg"\n    }\n}',
+            'val fixed = steady("closed.svg")\nval flashing = blink(on = "on.svg", off = "off.svg", everyMs = 500)\n\nappearance { indication ->\n    if (indication.aspect == Aspect.Closed) fixed else flashing\n}',
           ),
           text(
-            'simulationMs et halfPeriodMs sont en millisecondes. En utilisant le temps simulé, l’image suit la pause et la vitesse de la simulation. Les images closed.svg, open.svg et off.svg sont à fournir par le mod.',
+            'everyMs est la durée de chaque image, entre 100 et 10 000 millisecondes simulées : 500 donne 500 ms allumé puis 500 ms éteint, soit un cycle d’une seconde. Le SDK transmet cette durée au rendu du jeu. La pause fige la phase, l’accélération suit le temps simulé et les signaux de même cadence sont synchronisés. Les deux images doivent appartenir au catalogue du modèle.',
           ),
+          code(blinkSignal, 'Un modèle complet avec une cadence de 250 ms'),
+          text(
+            'Ajoutez ce modèle à signalMod avec signal(blinkingSignal). Son catalogue textures_clignotantes doit déclarer closed.svg, on.svg et off.svg. Pour créer le paquet, reprenez le point d’entrée du guide d’approche en important wiki.blinking.blinkingSignal ; vous pouvez aussi assembler les deux modèles dans le même mod.',
+          ),
+          text(
+            'steady et blink retournent SignalAnimation. Déclarez les descriptions une fois puis renvoyez-les depuis appearance, comme dans cet exemple. frameAt(simulationMs) permet de vérifier une image sans lancer le jeu ; un temps négatif est refusé. Le choix de texture ne donne jamais une permission de conduite.',
+          ),
+          note(
+            'animatedImages reste disponible pour les callbacks existants. Le rendu en jeu historique utilise deux images échantillonnées à sa demi-période ; utilisez appearance et blink pour déclarer une cadence propre au modèle. Recompilez le mod avec le nouveau kit et utilisez son adaptateur associé : un ancien adaptateur refuse ces nouveaux mods au lieu d’afficher une animation incorrecte.',
+          ),
+          links({
+            label: 'SignalAnimation : paramètres et types',
+            to: '/reference/signalanimation',
+          }),
         ],
       },
     ],
@@ -633,7 +651,7 @@ textures=mon_premier_signal`,
         title: 'Une consigne n’est pas une permission native',
         blocks: [
           note(
-            'Une marche à vue exige une couverture physique fraîche de la voie libre. Les permissions natives du jeu restent actives. La présence d’un constructeur de règle ne garantit pas la prise en charge de chaque scénario par le runtime.',
+            'Une marche à vue exige une couverture physique fraîche de la voie libre. Sous Windows, l’autorisation explicite du mod remplace le verrou d’occupation et de réservation sur la voie suivie. Les conflits de voies croisées et les contrôles d’itinéraire natifs restent bloquants. Le mod choisit quand autoriser ce mouvement ; le SDK maintient le freinage avant les obstacles.',
           ),
           links(
             {

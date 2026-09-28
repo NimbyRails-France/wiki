@@ -5,6 +5,24 @@ import nimby.mod.*
 import wiki.models.*
 
 fun main() {
+    val approachingMod = signalMod("approach-test", "Approach") { signal(wiki.approach.approachSignal) }
+    val approachType = approachingMod.signalTypes.single()
+    check(approachType.observeApproach && approachType.approachBlocks == 2)
+    fun approaching(id: Long?, fresh: Boolean = true): Enum<*> {
+        val decision = approachingMod.decide(Signal(type = approachType.id,
+            observation = Observation(Occupancy.Clear, fresh, true, approachingTrain = id)), null)!!
+        return approachingMod.indication(decision)!!.aspect
+    }
+    check(approaching(0x5000000010001L) == wiki.approach.ApproachAspect.Open)
+    check(approaching(0x8000000010001L) == wiki.approach.ApproachAspect.Closed)
+    check(approaching(null) == wiki.approach.ApproachAspect.Closed)
+    check(approaching(0x5000000010001L, false) == wiki.approach.ApproachAspect.Closed)
+    val blinkingMod = signalMod("blink-test", "Blink") { signal(wiki.blinking.blinkingSignal) }
+    val blinking = blinkingMod.evaluate(emptyMap(), Observation(Occupancy.Clear, true, true))
+    check(blinkingMod.animation(blinking)!!.everyMs == 250L)
+    check(blinkingMod.texture(blinking, 250, 500) == "off.svg")
+    check(blinkingMod.texture(blinking, 500, 500) == "on.svg")
+    check(blinkingMod.drivingRule(blinking) == AutomaticDriving.stop())
     val mod = createMod()
     fun aspect(value: Decision) = requireNotNull(mod.indication(value)?.of(firstSignal)).aspect
     check(aspect(mod.evaluate(mapOf("active" to true), Observation())) == Aspect.Closed)

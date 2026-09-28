@@ -2,10 +2,12 @@ import { articles, groups } from './index'
 import messages from './en.json'
 import ui from './ui-en.json'
 import codeText from './code-en.json'
+import { authoringEnglish } from './authoring'
+import { toolAuthoringEnglish } from './tool-authoring'
 import type { Article, Block } from './schema'
 
 export type Locale = 'fr' | 'en'
-const english: Record<string, string> = { ...messages, ...ui }
+const english: Record<string, string> = { ...messages, ...ui, ...authoringEnglish, ...toolAuthoringEnglish }
 
 // A missing translation is a build/test error, never a silent French fallback.
 export function translate(value: string, locale: Locale): string {

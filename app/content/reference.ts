@@ -8,6 +8,8 @@ const descriptions: Record<string, string> = {
   SignalMod:
     'Indication et ancienne déclaration à vocabulaire commun ; préférer signalModel pour les nouveaux projets.',
   SignalModel: 'Modèles indépendants : enums, règles, images, conduite et lecture typée du voisin.',
+  SignalAnimation:
+    'Images fixes et clignotantes déclarées par le mod, animées sur le temps du jeu.',
   ModServices: 'Déclarer un outil ou une action disponible lorsqu’un autre mod est chargé.',
   ToolContext:
     'Lire le réseau, préparer une pose, publier des boutons et écrire dans le journal depuis un outil.',

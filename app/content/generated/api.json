@@ -1,12 +1,12 @@
 {
-  "sdkVersion": "0.8.0-alpha.2",
+  "sdkVersion": "0.8.0-alpha.3",
   "files": [
     {
       "file": "AutomaticDriving.kt",
       "path": "kotlin/src/nimby/AutomaticDriving.kt",
       "runtime": "Kotlin/Native",
       "package": "nimby",
-      "sha256": "61f20406ff932256127c4917f2bef6a56ce693e15ce928fde363e121a05d3059",
+      "sha256": "d11312219aa16c880951f01df70635a6df803c6e2751acdfa7332f6bb5616d41",
       "symbols": [
         {
           "name": "AutomaticDriving",
@@ -61,8 +61,8 @@
           "owner": "AutomaticDriving",
           "kind": "fun",
           "signature": "fun restrictedUntilNextSignal(entrySpeedMps: Double, maximumSpeedMps: Double, stopFirst: Boolean): DrivingRule",
-          "documentation": "Apres passage, plafond conserve jusqu'au panneau suivant (passage tete),\navec freinage sur l'espace libre physiquement verifie. stopFirst impose\nune preuve d'arret avant entree ; les permissions natives restent actives.",
-          "line": 66
+          "documentation": "Apres passage, plafond conserve jusqu'au panneau suivant (passage tete),\navec freinage sur l'espace libre physiquement verifie. stopFirst impose\nune preuve d'arret avant entree. Sous Windows, cette permission remplace\nle verrou d'occupation/reservation du canton sur la voie suivie. Les\nconflits de voies croisees et les controles d'itineraire natifs restent\nbloquants. Le mod doit choisir quand l'entree est permise ; une voie\nreservee ne devient pas libre et les obstacles physiques restent detectes.",
+          "line": 70
         }
       ]
     },
@@ -84,35 +84,84 @@
       ]
     },
     {
+      "file": "GameDateTime.kt",
+      "path": "kotlin/src/nimby/GameDateTime.kt",
+      "runtime": "Kotlin/Native",
+      "package": "nimby",
+      "sha256": "c4b1b3d0078abe22e396ddb116c0d2636b0dc476cba6e61a73ecfdf72a09a20e",
+      "symbols": [
+        {
+          "name": "GameDateTime",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class GameDateTime(val year: Int, val month: Int, val day: Int,\n                        val hour: Int = 0, val minute: Int = 0, val second: Int = 0)",
+          "documentation": "Date et heure UTC, calendrier grégorien, de l'an 1 à 9999.\nAucun fuseau Windows ni décalage d'affichage du jeu n'est appliqué.\nUne date impossible est refusée, jamais corrigée silencieusement.",
+          "line": 6
+        },
+        {
+          "name": "toUtcSeconds",
+          "owner": "GameDateTime",
+          "kind": "fun",
+          "signature": "fun toUtcSeconds(): Long",
+          "documentation": "",
+          "line": 12
+        },
+        {
+          "name": "toString",
+          "owner": "GameDateTime",
+          "kind": "fun",
+          "signature": "override fun toString(): String = \"${year.toString().padStart(4, '0')}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:${second.toString().padStart(2, '0')}Z\"",
+          "documentation": "",
+          "line": 16
+        },
+        {
+          "name": "fromUtcSeconds",
+          "owner": "GameDateTime.Companion",
+          "kind": "fun",
+          "signature": "fun fromUtcSeconds(seconds: Long): GameDateTime",
+          "documentation": "",
+          "line": 24
+        },
+        {
+          "name": "dateTime",
+          "owner": "",
+          "kind": "fun",
+          "signature": "fun ToolClock.dateTime(): GameDateTime = GameDateTime.fromUtcSeconds(utcSeconds)",
+          "documentation": "Convertit l'observation en date UTC sans modifier le jeu.",
+          "line": 38
+        }
+      ]
+    },
+    {
       "file": "Mod.kt",
       "path": "kotlin/src/nimby/Mod.kt",
       "runtime": "Kotlin/Native",
       "package": "nimby",
-      "sha256": "5da8fb78e922c291796a524204a183676ca6478e7b2fcd21fb0fb6211e133be2",
+      "sha256": "1b09fd4201530cd51a5e454794286f6026732bbabc6d472bd51b456c6399e9b5",
       "symbols": [
         {
           "name": "Checkbox",
           "owner": "",
           "kind": "class",
           "signature": "data class Checkbox(val name: String, val label: String, val description: String, val defaultValue: Boolean = false,\n    /** Pour un avertissement importé : visible tant qu'il reste à acquitter. */\n    val onlyWhenEnabled: Boolean = false)",
-          "documentation": "API de mod Kotlin. Les unités sont mètres, secondes, m/s, kg, N et W.",
-          "line": 4
+          "documentation": "Case du panneau d'extensions du signal sélectionné.\nname est la clé technique enregistrée, jamais affichée ; label apparaît à côté\nde la case et description sous la case, avec retour à la ligne automatique.\nUne description vide n'ajoute aucune ligne. label et description acceptent tr.\ndefaultValue est utilisé quand aucun réglage n'a encore été enregistré.\nLa case ne change pas une règle seule : consulter enabled dans rules.",
+          "line": 10
         },
         {
           "name": "SignalType",
           "owner": "",
           "kind": "class",
-          "signature": "data class SignalType(\n    val id: String,\n    val title: String,\n    val textureSet: String,\n    val checkboxes: List<Checkbox> = emptyList(),\n    /** Demande l'observation d'un train orienté vers ce signal, dans [approachBlocks] cantons en amont.\n     * Ne constitue pas une réservation ni une autorisation de mouvement. */\n    val observeApproach: Boolean = false,\n    val actions: List<SignalAction> = emptyList(),\n    /** Portée lorsque [observeApproach] est activé : 1 = canton immédiatement\n     * derrière le signal ; 2 = les deux cantons précédents. De 1 à 16.\n     * Le parcours suit la tête du train, sans choisir de branche à une aiguille.\n     * Le SDK fournit une observation ; le mod décide si elle autorise l'ouverture. */\n    val approachBlocks: Int = 1\n)",
+          "signature": "data class SignalType(\n    val id: String,\n    val title: String,\n    val textureSet: String,\n    val checkboxes: List<Checkbox> = emptyList(),\n    /** Demande l'observation d'un train orienté vers ce signal, dans [approachBlocks] cantons en amont.\n     * Ne constitue pas une réservation ni une autorisation de mouvement. */\n    val observeApproach: Boolean = false,\n    val actions: List<SignalAction> = emptyList(),\n    /** Portée lorsque [observeApproach] est activé : 1 = canton immédiatement\n     * derrière le signal ; 2 = les deux cantons précédents. De 1 à 16.\n     * Le parcours suit la tête du train, sans choisir de branche à une aiguille.\n     * Le SDK fournit une observation ; le mod décide si elle autorise l'ouverture. */\n    val approachBlocks: Int = 1,\n    /** Ressources et entrée constructible, utilisées pour générer mod.txt. */\n    val construction: SignalConstruction? = null\n)",
           "documentation": "Un modèle constructible du mod. Les identifiants restent stables entre versions\npour retrouver les textures et les réglages des parties existantes.\nLes noms de cases sont locaux au type : deux types peuvent avoir une case\n« active » avec des valeurs par défaut différentes.",
-          "line": 12
+          "line": 18
         },
         {
           "name": "Occupancy",
           "owner": "",
           "kind": "class",
           "signature": "enum class Occupancy {\nUnknown, Clear, Occupied\n}",
-          "documentation": "",
-          "line": 27
+          "documentation": "Occupation physique : l'entrée de la tête suffit à occuper un canton et\nl'arrière doit le dégager pour le libérer. Une portion aval observée peut\nprouver [Occupied] même sans limite connue ; elle ne prouve jamais [Clear].\nLe modèle de signal reste responsable de l'indication à afficher.",
+          "line": 39
         },
         {
           "name": "SettingsStatus",
@@ -120,7 +169,7 @@
           "kind": "class",
           "signature": "enum class SettingsStatus {\nUnavailable, Absent, Present\n}",
           "documentation": "",
-          "line": 28
+          "line": 40
         },
         {
           "name": "Observation",
@@ -128,7 +177,7 @@
           "kind": "class",
           "signature": "data class Observation(\n    val block: Occupancy = Occupancy.Unknown, val fresh: Boolean = false,\n    val routeKnown: Boolean = false, val forcedStop: Boolean = false,\n    val lampFailed: Boolean = false, val redFlashCondition: Boolean = false, val next: Int = 0,\n    val approachingTrain: Long? = null\n)",
           "documentation": "",
-          "line": 29
+          "line": 41
         },
         {
           "name": "Decision",
@@ -136,7 +185,7 @@
           "kind": "class",
           "signature": "data class Decision(val aspect: Int, val reason: Int)",
           "documentation": "Transport opaque, propre à la déclaration du mod. Ne pas persister ces codes\nni les utiliser comme indices d'enum : SignallingMod.indication les décode.\nLes recettes du banc utilisent séparément les ordinaux locaux du modèle.",
-          "line": 38
+          "line": 56
         },
         {
           "name": "Signal",
@@ -144,7 +193,7 @@
           "kind": "class",
           "signature": "data class Signal(\n    val id: Long = 0, val nextSignal: Long = 0, val settings: Map<String, Boolean> = emptyMap(),\n    val observation: Observation = Observation(), val settingsStatus: SettingsStatus = SettingsStatus.Present,\n    /** Identifiant de SignalType, fourni par le SDK à partir du catalogue observé. */\n    val type: String = \"\"\n)",
           "documentation": "",
-          "line": 39
+          "line": 57
         },
         {
           "name": "Vehicle",
@@ -152,7 +201,7 @@
           "kind": "class",
           "signature": "data class Vehicle(\n    val maxSpeedMps: Double = 0.0, val maxAccelerationMps2: Double = 0.0,\n    val serviceBrakingMps2: Double = 0.0, val tractiveEffortN: Double = 0.0,\n    val powerW: Double = 0.0, val emptyMassKg: Double = 0.0,\n    val extraMassKg: Double = 0.0, val lengthM: Double = 0.0\n)",
           "documentation": "",
-          "line": 45
+          "line": 63
         },
         {
           "name": "DrivingSettings",
@@ -160,7 +209,7 @@
           "kind": "class",
           "signature": "data class DrivingSettings(val brakeUse: Double = 0.8, val responseSeconds: Double = 2.0, val marginM: Double = 10.0)",
           "documentation": "",
-          "line": 51
+          "line": 69
         },
         {
           "name": "Constraint",
@@ -168,7 +217,7 @@
           "kind": "class",
           "signature": "data class Constraint(val source: Long, val beginM: Double, val endM: Double, val speedMps: Double, val releaseByRear: Boolean = true)",
           "documentation": "",
-          "line": 52
+          "line": 70
         },
         {
           "name": "DrivingInput",
@@ -176,7 +225,7 @@
           "kind": "class",
           "signature": "data class DrivingInput(\n    val headM: Double = 0.0, val speedMps: Double = 0.0, val lineSpeedMps: Double = 0.0,\n    val fresh: Boolean = false, val routeKnown: Boolean = false,\n    val onSight: Boolean = false, val visibleClearM: Double? = null\n)",
           "documentation": "",
-          "line": 53
+          "line": 71
         },
         {
           "name": "DrivingPlan",
@@ -184,7 +233,7 @@
           "kind": "class",
           "signature": "data class DrivingPlan(\n    val available: Boolean = false, val speedCeilingMps: Double = 0.0,\n    val serviceDecelerationMps2: Double = 0.0, val accelerationMps2: Double = 0.0,\n    val brakingRequired: Boolean = false, val limitingSource: Long = 0\n)",
           "documentation": "",
-          "line": 58
+          "line": 76
         },
         {
           "name": "DrivingFlag",
@@ -192,7 +241,7 @@
           "kind": "class",
           "signature": "enum class DrivingFlag(val bit: Int) {\nClear(1), HoldToClear(2), Stop(4), FollowTarget(8), OnSight(16), StopThenProceed(32), CancelAtNextClear(64),\n    /** Passage permis selon la vitesse memorisee ; ne libere aucune autre restriction. */\n    ApproachPassable(128)\n}",
           "documentation": "",
-          "line": 63
+          "line": 81
         },
         {
           "name": "DrivingRule",
@@ -200,7 +249,7 @@
           "kind": "class",
           "signature": "data class DrivingRule(\n    val speedMps: Double = -1.0, val reopenedSpeedMps: Double = 0.0,\n    val signalsAhead: Int = 0, val flags: Set<DrivingFlag> = emptySet()\n)",
           "documentation": "",
-          "line": 68
+          "line": 86
         },
         {
           "name": "SignallingMod",
@@ -208,7 +257,7 @@
           "kind": "class",
           "signature": "abstract class SignallingMod : GameMod()",
           "documentation": "Une seule implémentation Kotlin suffit. Le SDK fournit DLL, exports et boucle de lecture.",
-          "line": 74
+          "line": 92
         },
         {
           "name": "textureSet",
@@ -216,7 +265,7 @@
           "kind": "val",
           "signature": "open val textureSet: String = \"\"",
           "documentation": "",
-          "line": 76
+          "line": 94
         },
         {
           "name": "checkboxes",
@@ -224,7 +273,7 @@
           "kind": "val",
           "signature": "open val checkboxes: List<Checkbox> = emptyList()",
           "documentation": "",
-          "line": 77
+          "line": 95
         },
         {
           "name": "signalTypes",
@@ -232,7 +281,7 @@
           "kind": "val",
           "signature": "open val signalTypes: List<SignalType> get() = listOf(SignalType(id, title, textureSet, checkboxes))",
           "documentation": "",
-          "line": 78
+          "line": 96
         },
         {
           "name": "migrateSettings",
@@ -240,7 +289,7 @@
           "kind": "fun",
           "signature": "open fun migrateSettings(type: String, saved: Map<String, Boolean>): Map<String, Boolean> = saved",
           "documentation": "Convertit les anciennes cases lors du chargement d'un profil sauvegardé.\nNe reçoit que les valeurs enregistrées, sans inventer de valeurs absentes.\nRetourner les nouvelles clés ; le SDK complète leurs valeurs par défaut.",
-          "line": 82
+          "line": 100
         },
         {
           "name": "maximumLineSpeed",
@@ -248,7 +297,7 @@
           "kind": "val",
           "signature": "open val maximumLineSpeed = false",
           "documentation": "",
-          "line": 83
+          "line": 101
         },
         {
           "name": "diagnosticFile",
@@ -256,7 +305,7 @@
           "kind": "val",
           "signature": "open val diagnosticFile: String = \"nimby-kotlin-faults.jsonl\"",
           "documentation": "",
-          "line": 84
+          "line": 102
         },
         {
           "name": "unknownDecision",
@@ -264,7 +313,7 @@
           "kind": "val",
           "signature": "abstract val unknownDecision: Decision",
           "documentation": "",
-          "line": 85
+          "line": 103
         },
         {
           "name": "invalidNetworkDecision",
@@ -272,7 +321,7 @@
           "kind": "val",
           "signature": "abstract val invalidNetworkDecision: Decision",
           "documentation": "",
-          "line": 86
+          "line": 104
         },
         {
           "name": "modelLocalIndications",
@@ -280,7 +329,7 @@
           "kind": "val",
           "signature": "open val modelLocalIndications: Boolean = false",
           "documentation": "Le pont natif conserve alors le propriétaire de chaque indication.",
-          "line": 88
+          "line": 106
         },
         {
           "name": "unknownDecision",
@@ -288,7 +337,7 @@
           "kind": "fun",
           "signature": "open fun unknownDecision(type: String): Decision = unknownDecision",
           "documentation": "",
-          "line": 89
+          "line": 107
         },
         {
           "name": "invalidNetworkDecision",
@@ -296,7 +345,7 @@
           "kind": "fun",
           "signature": "open fun invalidNetworkDecision(type: String): Decision = invalidNetworkDecision",
           "documentation": "",
-          "line": 90
+          "line": 108
         },
         {
           "name": "indication",
@@ -304,7 +353,7 @@
           "kind": "fun",
           "signature": "open fun indication(decision: Decision): SignalIndication? = null",
           "documentation": "Lecture typée des décisions produites par signalModel ; null pour un code inconnu.",
-          "line": 92
+          "line": 110
         },
         {
           "name": "evaluate",
@@ -312,7 +361,7 @@
           "kind": "fun",
           "signature": "abstract fun evaluate(settings: Map<String, Boolean>, observation: Observation): Decision",
           "documentation": "",
-          "line": 93
+          "line": 111
         },
         {
           "name": "evaluate",
@@ -320,7 +369,7 @@
           "kind": "fun",
           "signature": "open fun evaluate(type: String, settings: Map<String, Boolean>, observation: Observation): Decision =",
           "documentation": "Calcul isolé d'un type. Le réseau utilise decide et Signal.type.\nLes décisions brutes sont opaques ; indication permet leur lecture typée.",
-          "line": 96
+          "line": 114
         },
         {
           "name": "decide",
@@ -328,7 +377,7 @@
           "kind": "fun",
           "signature": "abstract fun decide(signal: Signal, next: Decision?): Decision?",
           "documentation": "",
-          "line": 98
+          "line": 116
         },
         {
           "name": "fromLive",
@@ -336,7 +385,7 @@
           "kind": "fun",
           "signature": "open fun fromLive(signal: Signal): Signal = signal",
           "documentation": "",
-          "line": 99
+          "line": 117
         },
         {
           "name": "texture",
@@ -344,7 +393,15 @@
           "kind": "fun",
           "signature": "abstract fun texture(decision: Decision, simulationMs: Long, halfPeriodMs: Long): String",
           "documentation": "",
-          "line": 100
+          "line": 118
+        },
+        {
+          "name": "animation",
+          "owner": "SignallingMod",
+          "kind": "fun",
+          "signature": "open fun animation(decision: Decision): SignalAnimation? = null",
+          "documentation": "Description d'affichage fournie par appearance. Null conserve le callback\nhistorique texture ; les modèles déclaratifs la fournissent automatiquement.",
+          "line": 121
         },
         {
           "name": "forcedDecision",
@@ -352,7 +409,7 @@
           "kind": "fun",
           "signature": "open fun forcedDecision(aspect: Int): Decision? = null",
           "documentation": "Indication de recette autorisee par le mod. Null refuse le code.\nLe motif determine aussi la conduite : arret absolu ou permissif.\nAucun aspect, motif ni vitesse ne sont interpretes par le SDK.",
-          "line": 104
+          "line": 125
         },
         {
           "name": "forcedDecision",
@@ -360,7 +417,7 @@
           "kind": "fun",
           "signature": "open fun forcedDecision(type: String, aspect: Int): Decision? = forcedDecision(aspect)",
           "documentation": "",
-          "line": 105
+          "line": 126
         },
         {
           "name": "drivingRule",
@@ -368,7 +425,7 @@
           "kind": "fun",
           "signature": "abstract fun drivingRule(decision: Decision): DrivingRule?",
           "documentation": "",
-          "line": 106
+          "line": 127
         },
         {
           "name": "isFault",
@@ -376,7 +433,7 @@
           "kind": "fun",
           "signature": "abstract fun isFault(decision: Decision): Boolean",
           "documentation": "",
-          "line": 107
+          "line": 128
         },
         {
           "name": "isActive",
@@ -384,7 +441,7 @@
           "kind": "fun",
           "signature": "open fun isActive(decision: Decision): Boolean = true",
           "documentation": "",
-          "line": 108
+          "line": 129
         },
         {
           "name": "aspectName",
@@ -392,7 +449,7 @@
           "kind": "fun",
           "signature": "open fun aspectName(aspect: Int): String = aspect.toString()",
           "documentation": "",
-          "line": 109
+          "line": 130
         },
         {
           "name": "reasonName",
@@ -400,7 +457,7 @@
           "kind": "fun",
           "signature": "abstract fun reasonName(reason: Int): String",
           "documentation": "",
-          "line": 110
+          "line": 131
         },
         {
           "name": "plan",
@@ -408,7 +465,7 @@
           "kind": "fun",
           "signature": "open fun plan(vehicle: Vehicle, settings: DrivingSettings, input: DrivingInput, constraints: List<Constraint>) = DrivingPlan()",
           "documentation": "",
-          "line": 111
+          "line": 132
         },
         {
           "name": "evaluateNetwork",
@@ -416,7 +473,64 @@
           "kind": "fun",
           "signature": "fun SignallingMod.evaluateNetwork(input: List<Signal>): List<Decision>",
           "documentation": "Résolution des liens, commune aux mods et aux tests, sans récursion profonde.",
-          "line": 115
+          "line": 136
+        }
+      ]
+    },
+    {
+      "file": "ModResources.kt",
+      "path": "kotlin/src/nimby/ModResources.kt",
+      "runtime": "Kotlin/Native",
+      "package": "nimby",
+      "sha256": "439ec04920b3e0eb19a76bfdcc32dde241b6ff1d1be4e48c8664370e7477bd26",
+      "symbols": [
+        {
+          "name": "ModInfo",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class ModInfo(val id: String, val title: String)",
+          "documentation": "Identité du paquet, générée depuis mod.json sous le nom nimby.mod.modInfo.\nRéutiliser cette valeur dans signalMod ou toolMod évite de recopier le nom\net l'identifiant. Le Hub peut lire mod.json avant toute compilation.",
+          "line": 6
+        },
+        {
+          "name": "ModMetadata",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class ModMetadata(val author: String, val description: String, val name: String? = null)",
+          "documentation": "Informations du mod et textes des listes et fiches de mods dans le jeu.\nL'auteur et la description ne sont pas des règles de signalisation.\nname et description acceptent tr(...). Le nom technique et la version\nrestent ceux de mod.json ; name ne change que le texte affiché.\nLe paquet conserve une version lisible dans la langue de repli même sans\nl'adaptation Windows de localisation du SDK. Le sélecteur de nouvelle partie\net le gestionnaire de mods en partie sont couverts. Les pages du Hub et de\nSteam restent des métadonnées de distribution, indépendantes du jeu.",
+          "line": 16
+        },
+        {
+          "name": "SignalConstruction",
+          "owner": "",
+          "kind": "class",
+          "signature": "class SignalConstruction(\n    states: List<String>, val name: String, val kind: String = \"path\",\n    val catalogueName: String = name,\n    val nameKey: String? = null, val catalogueNameKey: String? = null,\n)",
+          "documentation": "Déclaration du signal dans les menus de construction du jeu.\nstates contient les chemins relatifs au paquet, dans leur ordre définitif.\nNe pas réordonner ni retirer les anciennes entrées d'un catalogue publié.\nname est le nom constructible ; catalogueName est le nom du jeu de textures.\nTous deux acceptent tr(...) : le SDK génère les clés de localisation natives\net suit la langue du jeu dans les catalogues. Sans son adaptation Windows,\nle nom anglais (ou la langue de repli disponible) reste lisible.\nLes clés nameKey/catalogueNameKey désignent la localisation native du jeu,\nuniquement pour conserver un catalogue existant. Elles ne sont pas des clés tr\net ne doivent pas être combinées avec tr(...) pour le même nom.\nkind correspond au type natif : path est le type utilisé par nos signaux.\nLe plugin vérifie les chemins et la présence des fichiers à la compilation.",
+          "line": 30
+        },
+        {
+          "name": "states",
+          "owner": "SignalConstruction",
+          "kind": "val",
+          "signature": "val states: List<String> = states.toList()",
+          "documentation": "",
+          "line": 35
+        },
+        {
+          "name": "signalMod",
+          "owner": "",
+          "kind": "fun",
+          "signature": "fun signalMod(info: ModInfo, block: SignalModelsBuilder.() -> Unit): SignallingMod =",
+          "documentation": "Assemble le mod avec l'identité générée à partir de mod.json.",
+          "line": 44
+        },
+        {
+          "name": "toolMod",
+          "owner": "",
+          "kind": "fun",
+          "signature": "fun toolMod(info: ModInfo, block: ToolModBuilder.() -> Unit): ToolMod =",
+          "documentation": "Assemble l'outil avec l'identité générée à partir de mod.json.",
+          "line": 48
         }
       ]
     },
@@ -425,7 +539,7 @@
       "path": "kotlin/src/nimby/ModServices.kt",
       "runtime": "Kotlin/Native",
       "package": "nimby",
-      "sha256": "0c929f3a23b67d6ebbf93c895bdc1cc3bbbd813489eb4fd920f81030eee20254",
+      "sha256": "ab394101cb83bf3455fa0f5cd36dfe71b490b675827616748befa1f8a82f0b42",
       "symbols": [
         {
           "name": "SignalAction",
@@ -468,12 +582,36 @@
           "line": 21
         },
         {
+          "name": "metadata",
+          "owner": "GameMod",
+          "kind": "val",
+          "signature": "open val metadata: ModMetadata? = null",
+          "documentation": "Déclarer metadata dans le builder pour générer les informations du jeu.",
+          "line": 23
+        },
+        {
+          "name": "windows",
+          "owner": "GameMod",
+          "kind": "val",
+          "signature": "open val windows: List<ToolWindow> = emptyList()",
+          "documentation": "",
+          "line": 24
+        },
+        {
+          "name": "onWindowEvent",
+          "owner": "GameMod",
+          "kind": "fun",
+          "signature": "open fun onWindowEvent(request: ToolWindowEvent, context: ToolContext)",
+          "documentation": "",
+          "line": 25
+        },
+        {
           "name": "services",
           "owner": "GameMod",
           "kind": "val",
           "signature": "open val services: List<String> = emptyList()",
           "documentation": "",
-          "line": 22
+          "line": 26
         },
         {
           "name": "onSignalAction",
@@ -481,7 +619,7 @@
           "kind": "fun",
           "signature": "open fun onSignalAction(request: SignalActionRequest, context: ToolContext)",
           "documentation": "",
-          "line": 23
+          "line": 27
         },
         {
           "name": "onTick",
@@ -489,7 +627,7 @@
           "kind": "fun",
           "signature": "open fun onTick(context: ToolContext)",
           "documentation": "",
-          "line": 24
+          "line": 28
         },
         {
           "name": "onStop",
@@ -497,7 +635,7 @@
           "kind": "fun",
           "signature": "open fun onStop()",
           "documentation": "",
-          "line": 25
+          "line": 29
         },
         {
           "name": "ToolMod",
@@ -505,7 +643,7 @@
           "kind": "class",
           "signature": "class ToolMod : GameMod()",
           "documentation": "Un mod outil reçoit des actions sans définir d'indication ni de vitesse.\nConstruction réservée au SDK : utilisez la fonction de création ou le contexte fourni.",
-          "line": 29
+          "line": 33
         },
         {
           "name": "id",
@@ -513,7 +651,7 @@
           "signature": "override val id: String",
           "owner": "ToolMod",
           "documentation": "",
-          "line": 29
+          "line": 33
         },
         {
           "name": "title",
@@ -521,7 +659,23 @@
           "signature": "override val title: String",
           "owner": "ToolMod",
           "documentation": "",
-          "line": 29
+          "line": 33
+        },
+        {
+          "name": "metadata",
+          "kind": "val",
+          "signature": "override val metadata: ModMetadata?",
+          "owner": "ToolMod",
+          "documentation": "",
+          "line": 33
+        },
+        {
+          "name": "windows",
+          "kind": "val",
+          "signature": "override val windows: List<ToolWindow>",
+          "owner": "ToolMod",
+          "documentation": "",
+          "line": 33
         },
         {
           "name": "services",
@@ -529,7 +683,7 @@
           "kind": "val",
           "signature": "override val services: List<String> = handlers.keys.toList()",
           "documentation": "",
-          "line": 35
+          "line": 42
         },
         {
           "name": "onSignalAction",
@@ -537,7 +691,7 @@
           "kind": "fun",
           "signature": "override fun onSignalAction(request: SignalActionRequest, context: ToolContext)",
           "documentation": "",
-          "line": 36
+          "line": 43
         },
         {
           "name": "onTick",
@@ -545,7 +699,7 @@
           "kind": "fun",
           "signature": "override fun onTick(context: ToolContext) = tick(context)",
           "documentation": "",
-          "line": 39
+          "line": 46
         },
         {
           "name": "onStop",
@@ -553,7 +707,15 @@
           "kind": "fun",
           "signature": "override fun onStop() = stop()",
           "documentation": "",
-          "line": 40
+          "line": 47
+        },
+        {
+          "name": "onWindowEvent",
+          "owner": "ToolMod",
+          "kind": "fun",
+          "signature": "override fun onWindowEvent(request: ToolWindowEvent, context: ToolContext)",
+          "documentation": "",
+          "line": 48
         },
         {
           "name": "ToolModBuilder",
@@ -561,7 +723,23 @@
           "kind": "class",
           "signature": "class ToolModBuilder",
           "documentation": "Construction réservée au SDK : utilisez la fonction de création ou le contexte fourni.",
-          "line": 43
+          "line": 53
+        },
+        {
+          "name": "window",
+          "owner": "ToolModBuilder",
+          "kind": "fun",
+          "signature": "fun window(id: String, title: String, shortcut: String = \"F8\", handler: ToolContext.(ToolWindowEvent) -> Unit)",
+          "documentation": "Enregistre une fenêtre et son formulaire ; aucun signal requis.",
+          "line": 57
+        },
+        {
+          "name": "metadata",
+          "owner": "ToolModBuilder",
+          "kind": "fun",
+          "signature": "fun metadata(author: String, description: String, name: String? = null)",
+          "documentation": "Auteur et description affichés dans la liste des mods du jeu.",
+          "line": 67
         },
         {
           "name": "service",
@@ -569,7 +747,7 @@
           "kind": "fun",
           "signature": "fun service(id: String, handler: ToolContext.(SignalActionRequest) -> Unit)",
           "documentation": "Callback sérialisé sur le worker du mod, jamais sur le thread de l'UI.",
-          "line": 48
+          "line": 72
         },
         {
           "name": "onTick",
@@ -577,7 +755,7 @@
           "kind": "fun",
           "signature": "fun onTick(block: ToolContext.() -> Unit)",
           "documentation": "",
-          "line": 54
+          "line": 78
         },
         {
           "name": "onStop",
@@ -585,7 +763,7 @@
           "kind": "fun",
           "signature": "fun onStop(block: () -> Unit)",
           "documentation": "",
-          "line": 55
+          "line": 79
         },
         {
           "name": "toolMod",
@@ -593,7 +771,72 @@
           "kind": "fun",
           "signature": "fun toolMod(id: String, title: String, block: ToolModBuilder.() -> Unit): ToolMod",
           "documentation": "",
-          "line": 58
+          "line": 82
+        }
+      ]
+    },
+    {
+      "file": "SignalAnimation.kt",
+      "path": "kotlin/src/nimby/SignalAnimation.kt",
+      "runtime": "Kotlin/Native",
+      "package": "nimby",
+      "sha256": "a04b5eec69ddb09879d0b03361e0c74cdc536ccb8ce9d7cece2618b7d4522635",
+      "symbols": [
+        {
+          "name": "SignalAnimation",
+          "owner": "",
+          "kind": "class",
+          "signature": "class SignalAnimation",
+          "documentation": "Images d'une indication, indépendantes de ses règles de conduite.\nConstruire avec [steady] ou [blink] ; le SDK transmet les images et la durée\nau jeu. Aucun minuteur ni thread n'est nécessaire dans le mod.\nConstruction réservée au SDK : utilisez la fonction de création ou le contexte fourni.",
+          "line": 6
+        },
+        {
+          "name": "first",
+          "kind": "val",
+          "signature": "val first: String",
+          "owner": "SignalAnimation",
+          "documentation": "",
+          "line": 6
+        },
+        {
+          "name": "alternate",
+          "kind": "val",
+          "signature": "val alternate: String",
+          "owner": "SignalAnimation",
+          "documentation": "",
+          "line": 6
+        },
+        {
+          "name": "everyMs",
+          "kind": "val",
+          "signature": "val everyMs: Long",
+          "owner": "SignalAnimation",
+          "documentation": "",
+          "line": 6
+        },
+        {
+          "name": "frameAt",
+          "owner": "SignalAnimation",
+          "kind": "fun",
+          "signature": "fun frameAt(simulationMs: Long): String",
+          "documentation": "Image à un instant de simulation, en millisecondes. À zéro, [first].\nUn même instant donne toujours la même image, y compris pendant une pause.\nUn temps négatif est refusé. Utile aussi pour les tests du mod.",
+          "line": 12
+        },
+        {
+          "name": "steady",
+          "owner": "",
+          "kind": "fun",
+          "signature": "fun steady(path: String): SignalAnimation = imagePath(path).let { SignalAnimation(it, it, 0) }",
+          "documentation": "Image fixe, déclarée dans le catalogue de ressources du modèle.",
+          "line": 26
+        },
+        {
+          "name": "blink",
+          "owner": "",
+          "kind": "fun",
+          "signature": "fun blink(on: String, off: String, everyMs: Long): SignalAnimation",
+          "documentation": "Alterne deux images du catalogue toutes les [everyMs] millisecondes simulées.\nDe 100 à 10 000 ms par image ; 500 signifie 500 ms allumé puis 500 ms éteint.\nLa phase suit l'horloge du jeu : pause et accélération sont respectées.\nTous les signaux utilisant la même durée sont synchronisés. Le mod choisit\nles images et la durée ; cette animation ne change aucune consigne de conduite.",
+          "line": 33
         }
       ]
     },
@@ -602,7 +845,7 @@
       "path": "kotlin/src/nimby/SignalMod.kt",
       "runtime": "Kotlin/Native",
       "package": "nimby",
-      "sha256": "b4b0a94d226c5addc4f6890e4d7dc373354bbcc6b0096aa888994d5027a21963",
+      "sha256": "3279ec0fd7ef34a443ed4b9e6bb8b55f947655f2dd355037ecb4f534dc2f5cbf",
       "symbols": [
         {
           "name": "Indication",
@@ -629,14 +872,6 @@
           "line": 15
         },
         {
-          "name": "signal",
-          "kind": "val",
-          "signature": "val signal: Signal",
-          "owner": "SignalContext",
-          "documentation": "",
-          "line": 15
-        },
-        {
           "name": "next",
           "kind": "val",
           "signature": "val next: Indication<A, R>?",
@@ -645,12 +880,20 @@
           "line": 15
         },
         {
+          "name": "signal",
+          "owner": "SignalContext",
+          "kind": "val",
+          "signature": "val signal = signal.copy(observation = signal.observation.validatedApproach())",
+          "documentation": "",
+          "line": 20
+        },
+        {
           "name": "observation",
           "owner": "SignalContext",
           "kind": "val",
           "signature": "val observation: Observation get() = signal.observation",
           "documentation": "",
-          "line": 20
+          "line": 21
         },
         {
           "name": "block",
@@ -658,7 +901,7 @@
           "kind": "val",
           "signature": "val block: Occupancy get() = observation.block",
           "documentation": "",
-          "line": 21
+          "line": 22
         },
         {
           "name": "fresh",
@@ -666,7 +909,7 @@
           "kind": "val",
           "signature": "val fresh: Boolean get() = observation.fresh",
           "documentation": "",
-          "line": 22
+          "line": 23
         },
         {
           "name": "routeKnown",
@@ -674,15 +917,23 @@
           "kind": "val",
           "signature": "val routeKnown: Boolean get() = observation.routeKnown",
           "documentation": "",
-          "line": 23
+          "line": 24
         },
         {
           "name": "approachingTrain",
           "owner": "SignalContext",
           "kind": "val",
-          "signature": "val approachingTrain: Long? get() = observation.approachingTrain",
-          "documentation": "",
-          "line": 24
+          "signature": "val approachingTrain: Long? get() = observation.approachingTrain.takeIf { fresh }",
+          "documentation": "Identifiant validé d'une approche fraîche ; null sinon.",
+          "line": 26
+        },
+        {
+          "name": "trainApproaching",
+          "owner": "SignalContext",
+          "kind": "val",
+          "signature": "val trainApproaching: Boolean get() = approachingTrain != null",
+          "documentation": "Présence d'une approche fraîche, sans décodage d'identifiant dans le mod.",
+          "line": 28
         },
         {
           "name": "settingsStatus",
@@ -690,7 +941,7 @@
           "kind": "val",
           "signature": "val settingsStatus: SettingsStatus get() = signal.settingsStatus",
           "documentation": "",
-          "line": 25
+          "line": 29
         },
         {
           "name": "enabled",
@@ -698,7 +949,7 @@
           "kind": "fun",
           "signature": "fun enabled(option: Checkbox): Boolean",
           "documentation": "Une valeur absente prend le défaut déclaré. Un profil indisponible reste\nidentifiable par [settingsStatus] : ce défaut ne prouve pas sa validité.",
-          "line": 29
+          "line": 33
         },
         {
           "name": "SignalDefinition",
@@ -706,7 +957,7 @@
           "kind": "class",
           "signature": "class SignalDefinition<A : Enum<A>, R : Enum<R>>",
           "documentation": "Configuration d'un modèle constructible. Les callbacks n'effectuent aucun\nappel natif : ils se testent avec de simples valeurs Kotlin.\nConstruction réservée au SDK : utilisez la fonction de création ou le contexte fourni.",
-          "line": 38
+          "line": 42
         },
         {
           "name": "observeApproach",
@@ -714,7 +965,23 @@
           "kind": "var",
           "signature": "var observeApproach: Boolean = base.observeApproach",
           "documentation": "",
-          "line": 41
+          "line": 45
+        },
+        {
+          "name": "approachBlocks",
+          "owner": "SignalDefinition",
+          "kind": "var",
+          "signature": "var approachBlocks: Int = base.approachBlocks",
+          "documentation": "",
+          "line": 46
+        },
+        {
+          "name": "observeApproach",
+          "owner": "SignalDefinition",
+          "kind": "fun",
+          "signature": "fun observeApproach(blocks: Int)",
+          "documentation": "Active la détection dans [blocks] cantons en amont, de 1 à 16.",
+          "line": 48
         },
         {
           "name": "checkbox",
@@ -722,7 +989,7 @@
           "kind": "fun",
           "signature": "fun checkbox(name: String, label: String, description: String = \"\", defaultValue: Boolean = false,\n                 onlyWhenEnabled: Boolean = false): Checkbox =",
           "documentation": "",
-          "line": 48
+          "line": 58
         },
         {
           "name": "rules",
@@ -730,7 +997,7 @@
           "kind": "fun",
           "signature": "fun rules(block: SignalContext<A, R>.() -> Indication<A, R>?)",
           "documentation": "",
-          "line": 52
+          "line": 62
         },
         {
           "name": "action",
@@ -738,7 +1005,7 @@
           "kind": "fun",
           "signature": "fun action(id: String, label: String, whenMod: String, service: String)",
           "documentation": "Affiché seulement si le fournisseur et son service sont disponibles.\nAucune dépendance obligatoire et aucun appel de mod depuis le thread UI.",
-          "line": 55
+          "line": 65
         },
         {
           "name": "evaluate",
@@ -746,7 +1013,7 @@
           "kind": "fun",
           "signature": "fun evaluate(block: (Map<String, Boolean>, Observation) -> Indication<A, R>)",
           "documentation": "Facultatif : calcul isolé sans résolution du réseau, pour les diagnostics.",
-          "line": 60
+          "line": 70
         },
         {
           "name": "migrateSettings",
@@ -754,7 +1021,7 @@
           "kind": "fun",
           "signature": "fun migrateSettings(block: (Map<String, Boolean>) -> Map<String, Boolean>)",
           "documentation": "",
-          "line": 61
+          "line": 71
         },
         {
           "name": "prepareObservation",
@@ -762,7 +1029,7 @@
           "kind": "fun",
           "signature": "fun prepareObservation(block: (Signal) -> Signal)",
           "documentation": "",
-          "line": 62
+          "line": 72
         },
         {
           "name": "allowForcedAspect",
@@ -770,7 +1037,7 @@
           "kind": "fun",
           "signature": "fun allowForcedAspect(block: (A) -> Indication<A, R>?)",
           "documentation": "Sans ce callback, toute demande de forçage d'indication est refusée.",
-          "line": 64
+          "line": 74
         },
         {
           "name": "SignalModBuilder",
@@ -778,7 +1045,7 @@
           "kind": "class",
           "signature": "class SignalModBuilder<A : Enum<A>, R : Enum<R>>",
           "documentation": "Déclaration du mod. Les replis, images, vitesses et permissions viennent\nexclusivement du mod. Le SDK prend en charge les exports et le réseau.\nConstruction réservée au SDK : utilisez la fonction de création ou le contexte fourni.",
-          "line": 83
+          "line": 93
         },
         {
           "name": "maximumLineSpeed",
@@ -786,7 +1053,7 @@
           "kind": "var",
           "signature": "var maximumLineSpeed: Boolean = false",
           "documentation": "",
-          "line": 84
+          "line": 94
         },
         {
           "name": "diagnosticFile",
@@ -794,7 +1061,7 @@
           "kind": "var",
           "signature": "var diagnosticFile: String = \"nimby-kotlin-faults.jsonl\"",
           "documentation": "",
-          "line": 85
+          "line": 95
         },
         {
           "name": "signal",
@@ -802,7 +1069,7 @@
           "kind": "fun",
           "signature": "fun signal(id: String, title: String, textures: String, block: SignalDefinition<A, R>.() -> Unit) =",
           "documentation": "",
-          "line": 95
+          "line": 106
         },
         {
           "name": "signal",
@@ -810,7 +1077,7 @@
           "kind": "fun",
           "signature": "fun signal(type: SignalType, block: SignalDefinition<A, R>.() -> Unit)",
           "documentation": "Permet de conserver une déclaration partagée avec des tests ou un éditeur.",
-          "line": 99
+          "line": 110
         },
         {
           "name": "images",
@@ -818,7 +1085,7 @@
           "kind": "fun",
           "signature": "fun images(block: (Indication<A, R>) -> String)",
           "documentation": "",
-          "line": 102
+          "line": 113
         },
         {
           "name": "animatedImages",
@@ -826,7 +1093,15 @@
           "kind": "fun",
           "signature": "fun animatedImages(block: (Indication<A, R>, Long, Long) -> String)",
           "documentation": "Temps simulé et demi-période en millisecondes, jamais l'heure du PC.",
-          "line": 104
+          "line": 115
+        },
+        {
+          "name": "appearance",
+          "owner": "SignalModBuilder",
+          "kind": "fun",
+          "signature": "fun appearance(block: (Indication<A, R>) -> SignalAnimation)",
+          "documentation": "Affichage déclaratif avec steady ou blink, synchronisé sur le jeu.",
+          "line": 117
         },
         {
           "name": "driving",
@@ -834,7 +1109,7 @@
           "kind": "fun",
           "signature": "fun driving(block: (Indication<A, R>) -> DrivingRule?)",
           "documentation": "",
-          "line": 105
+          "line": 120
         },
         {
           "name": "faults",
@@ -842,7 +1117,7 @@
           "kind": "fun",
           "signature": "fun faults(block: (Indication<A, R>) -> Boolean)",
           "documentation": "",
-          "line": 106
+          "line": 121
         },
         {
           "name": "activeWhen",
@@ -850,7 +1125,7 @@
           "kind": "fun",
           "signature": "fun activeWhen(block: (Indication<A, R>) -> Boolean)",
           "documentation": "",
-          "line": 107
+          "line": 122
         },
         {
           "name": "aspectNames",
@@ -858,7 +1133,7 @@
           "kind": "fun",
           "signature": "fun aspectNames(block: (A) -> String)",
           "documentation": "",
-          "line": 108
+          "line": 123
         },
         {
           "name": "reasonNames",
@@ -866,7 +1141,7 @@
           "kind": "fun",
           "signature": "fun reasonNames(block: (R) -> String)",
           "documentation": "",
-          "line": 109
+          "line": 124
         },
         {
           "name": "drivingPlan",
@@ -874,7 +1149,7 @@
           "kind": "fun",
           "signature": "fun drivingPlan(block: (Vehicle, DrivingSettings, DrivingInput, List<Constraint>) -> DrivingPlan)",
           "documentation": "",
-          "line": 110
+          "line": 125
         },
         {
           "name": "signalMod",
@@ -882,7 +1157,7 @@
           "kind": "fun",
           "signature": "inline fun <reified A : Enum<A>, reified R : Enum<R>> signalMod(\n    id: String, title: String, fallback: Indication<A, R>,\n    invalidNetwork: Indication<A, R> = fallback,\n    noinline block: SignalModBuilder<A, R>.() -> Unit\n): SignallingMod = buildSignalMod(id, title, fallback, invalidNetwork, enumValues<A>().toList(), enumValues<R>().toList(), block)",
           "documentation": "Ancienne déclaration à vocabulaire commun. Pour des modèles indépendants,\npréférer [signalModel] et la surcharge signalMod(id, title) { signal(model) }.\n[fallback] couvre les observations inconnues ;\n[invalidNetwork] couvre les liens absents et les cycles sans décision locale.",
-          "line": 117
+          "line": 132
         }
       ]
     },
@@ -891,7 +1166,7 @@
       "path": "kotlin/src/nimby/SignalModel.kt",
       "runtime": "Kotlin/Native",
       "package": "nimby",
-      "sha256": "0441184ada2c6ce5202417eec12118f0f33411b6f0e2d51c88a0a4b642ae9dce",
+      "sha256": "e1f88057c2a46c1c646a15edb92444575080702e98be450675a994fe097c0586",
       "symbols": [
         {
           "name": "SignalIndication",
@@ -1073,9 +1348,17 @@
           "name": "approachingTrain",
           "owner": "SignalRuleContext",
           "kind": "val",
-          "signature": "val approachingTrain: Long? get() = observation.approachingTrain",
-          "documentation": "",
-          "line": 56
+          "signature": "val approachingTrain: Long? get() = observation.approachingTrain.takeIf { fresh }",
+          "documentation": "Identifiant validé du train en approche, ou null si absent ou non frais.\nAucun décodage de l'identifiant n'est nécessaire dans le mod.",
+          "line": 58
+        },
+        {
+          "name": "trainApproaching",
+          "owner": "SignalRuleContext",
+          "kind": "val",
+          "signature": "val trainApproaching: Boolean get() = approachingTrain != null",
+          "documentation": "Vrai si une tête de train est observée en approche avec des données fraîches.\nNe prouve ni voie libre ni autorisation de mouvement.",
+          "line": 61
         },
         {
           "name": "settingsStatus",
@@ -1083,7 +1366,7 @@
           "kind": "val",
           "signature": "val settingsStatus: SettingsStatus get() = signal.settingsStatus",
           "documentation": "",
-          "line": 57
+          "line": 62
         },
         {
           "name": "enabled",
@@ -1091,7 +1374,7 @@
           "kind": "fun",
           "signature": "fun enabled(option: Checkbox): Boolean",
           "documentation": "",
-          "line": 58
+          "line": 63
         },
         {
           "name": "SignalModelBuilder",
@@ -1099,7 +1382,15 @@
           "kind": "class",
           "signature": "class SignalModelBuilder<A : Enum<A>, R : Enum<R>>",
           "documentation": "Tous les rôles d'un modèle, avec ses propres types d'indication et de motif.\nLes fonctions peuvent être déclarées dans des fichiers séparés du mod.\nConstruction réservée au SDK : utilisez la fonction de création ou le contexte fourni.",
-          "line": 67
+          "line": 72
+        },
+        {
+          "name": "construction",
+          "owner": "SignalModelBuilder",
+          "kind": "fun",
+          "signature": "fun construction(states: List<String>, name: String = base.title, kind: String = \"path\",\n                     catalogueName: String = name, nameKey: String? = null, catalogueNameKey: String? = null)",
+          "documentation": "Déclare les images dans leur ordre de catalogue et le signal constructible.\nname apparaît dans le menu de construction ; par défaut, le titre du modèle.\nLes chemins sont relatifs au paquet : assets/a.svg devient a.svg.\nLe SDK génère mod.txt au build, sans exécuter les règles ni ouvrir le jeu.",
+          "line": 80
         },
         {
           "name": "observeApproach",
@@ -1107,7 +1398,7 @@
           "kind": "var",
           "signature": "var observeApproach = base.observeApproach",
           "documentation": "",
-          "line": 70
+          "line": 84
         },
         {
           "name": "approachBlocks",
@@ -1115,7 +1406,15 @@
           "kind": "var",
           "signature": "var approachBlocks = base.approachBlocks",
           "documentation": "",
-          "line": 71
+          "line": 85
+        },
+        {
+          "name": "observeApproach",
+          "owner": "SignalModelBuilder",
+          "kind": "fun",
+          "signature": "fun observeApproach(blocks: Int)",
+          "documentation": "Active la détection dans [blocks] cantons en amont (de 1 à 16).\nLe mod consulte ensuite trainApproaching dans rules et décide de l'ouverture.",
+          "line": 88
         },
         {
           "name": "checkbox",
@@ -1123,7 +1422,7 @@
           "kind": "fun",
           "signature": "fun checkbox(name: String, label: String, description: String = \"\", defaultValue: Boolean = false,\n                 onlyWhenEnabled: Boolean = false): Checkbox =",
           "documentation": "",
-          "line": 85
+          "line": 106
         },
         {
           "name": "action",
@@ -1131,7 +1430,7 @@
           "kind": "fun",
           "signature": "fun action(id: String, label: String, whenMod: String, service: String)",
           "documentation": "",
-          "line": 88
+          "line": 109
         },
         {
           "name": "rules",
@@ -1139,7 +1438,7 @@
           "kind": "fun",
           "signature": "fun rules(block: SignalRuleContext.() -> Indication<A, R>?)",
           "documentation": "",
-          "line": 91
+          "line": 112
         },
         {
           "name": "evaluate",
@@ -1147,7 +1446,7 @@
           "kind": "fun",
           "signature": "fun evaluate(block: (Map<String, Boolean>, Observation) -> Indication<A, R>)",
           "documentation": "",
-          "line": 92
+          "line": 113
         },
         {
           "name": "evaluate",
@@ -1155,7 +1454,7 @@
           "kind": "fun",
           "signature": "fun evaluate(block: (Map<String, Boolean>, Observation, A) -> Indication<A, R>)",
           "documentation": "Facultatif : compatibilité avec les diagnostics isolés qui fournissent\nObservation.next comme ordinal de CE modèle. Le SDK le valide et le décode.\nEn réseau, utiliser rules et son voisin portant un modèle explicite.",
-          "line": 96
+          "line": 117
         },
         {
           "name": "migrateSettings",
@@ -1163,7 +1462,7 @@
           "kind": "fun",
           "signature": "fun migrateSettings(block: (Map<String, Boolean>) -> Map<String, Boolean>)",
           "documentation": "",
-          "line": 97
+          "line": 118
         },
         {
           "name": "prepareObservation",
@@ -1171,7 +1470,7 @@
           "kind": "fun",
           "signature": "fun prepareObservation(block: (Signal) -> Signal)",
           "documentation": "",
-          "line": 98
+          "line": 119
         },
         {
           "name": "allowForcedAspect",
@@ -1179,7 +1478,7 @@
           "kind": "fun",
           "signature": "fun allowForcedAspect(block: (A) -> Indication<A, R>?)",
           "documentation": "Recettes : le code reçu est l'ordinal local à ce modèle.",
-          "line": 100
+          "line": 121
         },
         {
           "name": "images",
@@ -1187,7 +1486,7 @@
           "kind": "fun",
           "signature": "fun images(block: (Indication<A, R>) -> String)",
           "documentation": "",
-          "line": 101
+          "line": 122
         },
         {
           "name": "animatedImages",
@@ -1195,7 +1494,15 @@
           "kind": "fun",
           "signature": "fun animatedImages(block: (Indication<A, R>, Long, Long) -> String)",
           "documentation": "Temps de simulation, en millisecondes.",
-          "line": 103
+          "line": 124
+        },
+        {
+          "name": "appearance",
+          "owner": "SignalModelBuilder",
+          "kind": "fun",
+          "signature": "fun appearance(block: (Indication<A, R>) -> SignalAnimation)",
+          "documentation": "Décrit l'affichage avec steady ou blink. Les durées sont transmises au\nmoteur de rendu ; le mod ne calcule pas la phase du clignotement.",
+          "line": 127
         },
         {
           "name": "driving",
@@ -1203,7 +1510,7 @@
           "kind": "fun",
           "signature": "fun driving(block: (Indication<A, R>) -> DrivingRule?)",
           "documentation": "",
-          "line": 104
+          "line": 130
         },
         {
           "name": "faults",
@@ -1211,7 +1518,7 @@
           "kind": "fun",
           "signature": "fun faults(block: (Indication<A, R>) -> Boolean)",
           "documentation": "",
-          "line": 105
+          "line": 131
         },
         {
           "name": "activeWhen",
@@ -1219,7 +1526,7 @@
           "kind": "fun",
           "signature": "fun activeWhen(block: (Indication<A, R>) -> Boolean)",
           "documentation": "",
-          "line": 106
+          "line": 132
         },
         {
           "name": "aspectNames",
@@ -1227,7 +1534,7 @@
           "kind": "fun",
           "signature": "fun aspectNames(block: (A) -> String)",
           "documentation": "",
-          "line": 107
+          "line": 133
         },
         {
           "name": "reasonNames",
@@ -1235,7 +1542,7 @@
           "kind": "fun",
           "signature": "fun reasonNames(block: (R) -> String)",
           "documentation": "",
-          "line": 108
+          "line": 134
         },
         {
           "name": "SignalModel",
@@ -1243,7 +1550,7 @@
           "kind": "class",
           "signature": "class SignalModel<A : Enum<A>, R : Enum<R>>",
           "documentation": "Modèle réutilisable et typé. Sa déclaration ne charge ni DLL ni partie.\nAjouter ce modèle à [signalMod] pour le rendre constructible.\nConstruction réservée au SDK : utilisez la fonction de création ou le contexte fourni.",
-          "line": 114
+          "line": 140
         },
         {
           "name": "type",
@@ -1251,7 +1558,7 @@
           "kind": "val",
           "signature": "val type: SignalType = builder.type()",
           "documentation": "",
-          "line": 118
+          "line": 144
         },
         {
           "name": "signalModel",
@@ -1259,7 +1566,7 @@
           "kind": "fun",
           "signature": "inline fun <reified A : Enum<A>, reified R : Enum<R>> signalModel(\n    id: String, title: String, textures: String, fallback: Indication<A, R>,\n    invalidNetwork: Indication<A, R> = fallback, noinline block: SignalModelBuilder<A, R>.() -> Unit\n): SignalModel<A, R> = signalModel(SignalType(id, title, textures), fallback, invalidNetwork, block)",
           "documentation": "",
-          "line": 162
+          "line": 190
         },
         {
           "name": "signalModel",
@@ -1267,7 +1574,7 @@
           "kind": "fun",
           "signature": "inline fun <reified A : Enum<A>, reified R : Enum<R>> signalModel(\n    type: SignalType, fallback: Indication<A, R>, invalidNetwork: Indication<A, R> = fallback,\n    noinline block: SignalModelBuilder<A, R>.() -> Unit\n): SignalModel<A, R> = buildSignalModel(type, fallback, invalidNetwork, enumValues<A>().toList(), enumValues<R>().toList(), block)",
           "documentation": "",
-          "line": 167
+          "line": 195
         },
         {
           "name": "SignalModelsBuilder",
@@ -1275,7 +1582,15 @@
           "kind": "class",
           "signature": "class SignalModelsBuilder",
           "documentation": "Composition du paquet : chaque modèle conserve ses enums et ses callbacks.\nConstruction réservée au SDK : utilisez la fonction de création ou le contexte fourni.",
-          "line": 179
+          "line": 207
+        },
+        {
+          "name": "metadata",
+          "owner": "SignalModelsBuilder",
+          "kind": "fun",
+          "signature": "fun metadata(author: String, description: String, name: String? = null)",
+          "documentation": "Auteur et description affichés dans la liste des mods du jeu.",
+          "line": 210
         },
         {
           "name": "maximumLineSpeed",
@@ -1283,7 +1598,7 @@
           "kind": "var",
           "signature": "var maximumLineSpeed = false",
           "documentation": "",
-          "line": 180
+          "line": 211
         },
         {
           "name": "diagnosticFile",
@@ -1291,7 +1606,7 @@
           "kind": "var",
           "signature": "var diagnosticFile = \"nimby-kotlin-faults.jsonl\"",
           "documentation": "",
-          "line": 181
+          "line": 212
         },
         {
           "name": "signal",
@@ -1299,7 +1614,7 @@
           "kind": "fun",
           "signature": "fun signal(model: SignalModel<*, *>)",
           "documentation": "",
-          "line": 184
+          "line": 215
         },
         {
           "name": "drivingPlan",
@@ -1307,7 +1622,7 @@
           "kind": "fun",
           "signature": "fun drivingPlan(block: (Vehicle, DrivingSettings, DrivingInput, List<Constraint>) -> DrivingPlan)",
           "documentation": "",
-          "line": 185
+          "line": 216
         },
         {
           "name": "signalMod",
@@ -1315,7 +1630,7 @@
           "kind": "fun",
           "signature": "fun signalMod(id: String, title: String, block: SignalModelsBuilder.() -> Unit): SignallingMod",
           "documentation": "Assemble des modèles indépendants. Le SDK transporte leur identité, mais\nn'invente aucune correspondance entre leurs états et aucune règle de conduite.",
-          "line": 190
+          "line": 221
         }
       ]
     },
@@ -1341,7 +1656,7 @@
       "path": "kotlin/src/nimby/ToolContext.kt",
       "runtime": "Kotlin/Native",
       "package": "nimby",
-      "sha256": "112ed686671effbc9c5e24a85024337134938bea530c466c5b259e7fce0a6c8b",
+      "sha256": "7684f1555be337a1a79c64dd5e073e15cd1ef73939fb36ef7c1cd2929c8b98bc",
       "symbols": [
         {
           "name": "ToolTrack",
@@ -1412,8 +1727,8 @@
           "owner": "",
           "kind": "class",
           "signature": "data class ToolNumberInput(val id: String, val label: String, val value: Int,\n    val minimum: Int, val maximum: Int, val enabled: Boolean = true)",
-          "documentation": "Champ saisissable au clavier. Le mod choisit la valeur et les bornes ;\nune modification valide arrive dans action=id et [SignalActionRequest.value].\nLe texte vide ou incomplet reste un brouillon local : aucune valeur de\nremplacement n'est envoyée au mod et les boutons de commande sont bloqués.",
-          "line": 19
+          "documentation": "Champ saisissable au clavier. Le mod choisit la valeur et les bornes ;\nune modification valide arrive dans action=id et [SignalActionRequest.value].\nLe texte vide ou incomplet reste un brouillon local : aucune valeur de\nremplacement n'est envoyée au mod et les boutons de commande sont bloqués.\nDans une ToolWindow, le clic envoie tous les champs dans ToolWindowEvent.values,\nsans événement intermédiaire par touche.",
+          "line": 21
         },
         {
           "name": "LogLevel",
@@ -1421,7 +1736,7 @@
           "kind": "class",
           "signature": "enum class LogLevel {\nInfo, Warning, Error\n}",
           "documentation": "",
-          "line": 21
+          "line": 23
         },
         {
           "name": "ToolContext",
@@ -1429,7 +1744,7 @@
           "kind": "class",
           "signature": "class ToolContext",
           "documentation": "Accès valable uniquement pendant un callback de l'outil, sur son worker.\nGarder les données copiées est permis ; conserver le contexte ne l'est pas.\nLa construction est expérimentale et exige le pont Windows correspondant.\nConstruction réservée au SDK : utilisez la fonction de création ou le contexte fourni.",
-          "line": 26
+          "line": 28
         },
         {
           "name": "worldId",
@@ -1437,7 +1752,7 @@
           "signature": "val worldId: String",
           "owner": "ToolContext",
           "documentation": "",
-          "line": 26
+          "line": 28
         },
         {
           "name": "generation",
@@ -1445,7 +1760,7 @@
           "signature": "val generation: Long",
           "owner": "ToolContext",
           "documentation": "",
-          "line": 26
+          "line": 28
         },
         {
           "name": "log",
@@ -1453,7 +1768,31 @@
           "kind": "fun",
           "signature": "fun log(message: String, level: LogLevel = LogLevel.Info)",
           "documentation": "Journal persistant commun aux mods ; ne pas y écrire de secrets.",
-          "line": 53
+          "line": 55
+        },
+        {
+          "name": "clock",
+          "owner": "ToolContext",
+          "kind": "fun",
+          "signature": "fun clock(): ToolClock",
+          "documentation": "Lit seulement l'horloge et l'identité de la partie, sans capturer le réseau.",
+          "line": 62
+        },
+        {
+          "name": "changeTime",
+          "owner": "ToolContext",
+          "kind": "fun",
+          "signature": "fun changeTime(utcSeconds: Long, recalculateTrains: Boolean = false): ToolTimeChange",
+          "documentation": "Change la date UTC sur le thread de simulation. Par défaut, les positions\net les délais relatifs sont conservés. recalculateTrains déclenche les\ninterventions natives (déplacements et coûts) : obtenir un choix explicite.\nLes erreurs peuvent survenir après le début de l'opération : relire, jamais\nréessayer automatiquement. Les secondes sous la seconde sont conservées.",
+          "line": 71
+        },
+        {
+          "name": "showWindow",
+          "owner": "ToolContext",
+          "kind": "fun",
+          "signature": "fun showWindow(request: ToolWindowEvent, message: String, buttons: List<ToolButton>, inputs: List<ToolNumberInput> = emptyList())",
+          "documentation": "Affiche le formulaire de la fenêtre à l'origine de request. message est\naffiché au-dessus, puis les libellés/champs et les boutons. Jusqu'à huit\nchamps et douze boutons ; valeurs invalides refusées avant tout événement.\nLes valeurs sont envoyées ensemble au clic, pas à chaque touche saisie.",
+          "line": 81
         },
         {
           "name": "network",
@@ -1461,7 +1800,7 @@
           "kind": "fun",
           "signature": "fun network(): ToolNetwork",
           "documentation": "Nouvelle capture après prepareConstruction, jamais une topologie cachée.",
-          "line": 60
+          "line": 101
         },
         {
           "name": "prepareConstruction",
@@ -1469,7 +1808,7 @@
           "kind": "fun",
           "signature": "fun prepareConstruction(sourceSignal: Long): ConstructionResult",
           "documentation": "",
-          "line": 75
+          "line": 116
         },
         {
           "name": "showSignalPreview",
@@ -1477,7 +1816,7 @@
           "kind": "fun",
           "signature": "fun showSignalPreview(request: SignalActionRequest, positions: List<SignalPosition>)",
           "documentation": "Affiche les emplacements sur la carte avec le modèle du signal source.\nAucun signal n'est construit. Jusqu'à 64 positions, choisies par le mod.\nRenouveler dans onTick tant que l'aperçu est utile : il expire après deux\nsecondes sans publication et disparaît à l'arrêt du mod ou de la partie.\nIl est visible seulement pendant l'édition du signal source. La saisie\nd'une nouvelle valeur masque immédiatement l'ancien aperçu.\nUn seul aperçu est actif : la dernière publication remplace la précédente.\nNécessite le rendu Windows correspondant ; son absence lève une exception.\nLe retour confirme la publication, pas la visibilité de chaque position :\nle cadrage et les couches visibles du jeu restent appliqués.",
-          "line": 89
+          "line": 130
         },
         {
           "name": "clearSignalPreview",
@@ -1485,7 +1824,7 @@
           "kind": "fun",
           "signature": "fun clearSignalPreview()",
           "documentation": "Retire uniquement l'aperçu de ce mod. Ne touche ni aux signaux construits,\nni à l'historique d'annulation, ni aux aperçus d'un autre mod.",
-          "line": 102
+          "line": 143
         },
         {
           "name": "createSignals",
@@ -1493,7 +1832,7 @@
           "kind": "fun",
           "signature": "fun createSignals(ticket: Long, sourceSignal: Long, positions: List<SignalPosition>): ConstructionResult",
           "documentation": "En cas de Pending, appeler pollConstruction avec le même ticket. Ne pas\nrefaire createSignals : une réponse incertaine peut masquer une pose réelle.",
-          "line": 105
+          "line": 146
         },
         {
           "name": "undoConstruction",
@@ -1501,7 +1840,7 @@
           "kind": "fun",
           "signature": "fun undoConstruction(ticket: Long): ConstructionResult",
           "documentation": "",
-          "line": 111
+          "line": 152
         },
         {
           "name": "pollConstruction",
@@ -1509,7 +1848,7 @@
           "kind": "fun",
           "signature": "fun pollConstruction(ticket: Long): ConstructionResult",
           "documentation": "",
-          "line": 112
+          "line": 153
         },
         {
           "name": "showPanel",
@@ -1517,7 +1856,48 @@
           "kind": "fun",
           "signature": "fun showPanel(request: SignalActionRequest, message: String, buttons: List<ToolButton>, inputs: List<ToolNumberInput> = emptyList())",
           "documentation": "Remplace seulement l'action à l'origine de [request] par ces contrôles.\nLes clics suivants arrivent au même service avec l'id du bouton dans action.",
-          "line": 125
+          "line": 166
+        }
+      ]
+    },
+    {
+      "file": "ToolWindow.kt",
+      "path": "kotlin/src/nimby/ToolWindow.kt",
+      "runtime": "Kotlin/Native",
+      "package": "nimby",
+      "sha256": "de1ed1477456916ffd2272913870e48244af4649fb9d0e25999b70bcd45c09e6",
+      "symbols": [
+        {
+          "name": "ToolWindow",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class ToolWindow(val id: String, val title: String, val shortcut: String)",
+          "documentation": "Fenêtre de l'outil, indépendante d'un signal. Sous Windows, le raccourci\nouvre un panneau appartenant à la fenêtre du jeu, uniquement au premier plan.\nCe n'est pas un bouton injecté dans la barre native du jeu.\nshortcut accepte Ctrl+Shift+lettre ou une touche F1 à F12.",
+          "line": 7
+        },
+        {
+          "name": "ToolWindowEvent",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class ToolWindowEvent(\n    val window: String, val action: String, val values: Map<String, Int>,\n    val sequence: Long, val worldId: String, val generation: Long,\n)",
+          "documentation": "Action d'une fenêtre : open à l'ouverture, sinon l'id du bouton cliqué.\nvalues contient tous les entiers validés du formulaire à cet instant.\nLe SDK fournit cette requête : ne pas en fabriquer ni la réutiliser après\nun changement de partie. sequence associe la réponse au formulaire courant.",
+          "line": 13
+        },
+        {
+          "name": "ToolClock",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class ToolClock(val utcSeconds: Long, val elapsedMillis: Long)",
+          "documentation": "Horloge UTC observée. elapsedMillis est le temps simulé écoulé ; modifier\nla date ne simule pas les journées intermédiaires.",
+          "line": 20
+        },
+        {
+          "name": "ToolTimeChange",
+          "owner": "",
+          "kind": "class",
+          "signature": "data class ToolTimeChange(val clock: ToolClock, val interventions: Long)",
+          "documentation": "Résultat d'un changement explicite. interventions vaut zéro en mode\ntranslation ; le recalcul optionnel peut déplacer les trains et coûter de\nl'argent comme les interventions natives. Ne pas rejouer après une erreur.",
+          "line": 25
         }
       ]
     },

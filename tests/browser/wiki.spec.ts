@@ -29,7 +29,6 @@ test('tutorial supplies every project file without cloning an example', async ({
     '/commencer/installation': ['settings.gradle.kts', 'build.gradle.kts', 'mod.json'],
     '/commencer/premier-mod': [
       'src/main/kotlin/Entry.kt',
-      'assets/mod.txt',
       'assets/closed.svg',
       'assets/open.svg',
     ],
@@ -49,7 +48,7 @@ test('tutorial supplies every project file without cloning an example', async ({
         expect(content, name).toBeTruthy()
         expect(content).not.toContain('\\n')
         const path = resolve(
-          locale === 'en' ? '.validation/tutorial-project-en' : '.validation/tutorial-project',
+          locale === 'en' ? '.validation/tutorial-generated-project-en' : '.validation/tutorial-generated-project',
           name,
         )
         await mkdir(dirname(path), { recursive: true })

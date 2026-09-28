@@ -43,5 +43,13 @@
   "Identifiant de SignalType, fourni par le SDK à partir du catalogue observé.": "SignalType ID supplied by the SDK from the observed catalogue.",
   "Nouvelle valeur d'un champ numérique ; null pour un clic de bouton.": "New numeric input value; null for a button click.",
   "Une fois, au démarrage de votre application.": "Once, at application startup.",
-  "Chargement du profil terminé": "Profile loading completed"
+  "Chargement du profil terminé": "Profile loading completed",
+  "Le mod choisit ici sa politique de conduite.": "The mod chooses its driving policy here.",
+  "Signal clignotant": "Blinking signal",
+  "Le clignotement ne donne pas de permission : ce modèle exige toujours l'arrêt.": "Blinking grants no permission: this model always requires a stop.",
+  "Mon mod": "My mod",
+  "Les deux fichiers SVG sont déclarés une seule fois dans construction.": "Both SVG files are declared once in construction.",
+  "Votre nom": "Your name",
+  "Mon premier mod de signalisation.": "My first signalling mod.",
+  "Mes signaux personnalisés.": "My custom signals."
 }
